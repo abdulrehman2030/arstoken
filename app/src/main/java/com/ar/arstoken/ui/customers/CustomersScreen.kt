@@ -1,5 +1,6 @@
 package com.ar.arstoken.ui.customers
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -17,7 +18,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import com.ar.arstoken.model.Customer
 import com.ar.arstoken.viewmodel.CustomerViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun CustomersScreen(
     viewModel: CustomerViewModel,
