@@ -6,14 +6,17 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ar.arstoken.model.Item
 import com.ar.arstoken.viewmodel.BillingViewModel
 import kotlinx.coroutines.launch
+import androidx.activity.compose.BackHandler
 
 
 
@@ -43,6 +46,10 @@ fun BillingScreen(
     )
     val scope = rememberCoroutineScope()
 
+    BackHandler(enabled = drawerState.isOpen) {
+        scope.launch { drawerState.close() }
+    }
+
     // 🔔 Show snackbar when coming back from Settings
     LaunchedEffect(showSavedMessage) {
         if (showSavedMessage) {
@@ -57,11 +64,27 @@ fun BillingScreen(
 
             ModalDrawerSheet {
 
-                Text(
-                    "Admin",
-                    modifier = Modifier.padding(16.dp),
-                    style = MaterialTheme.typography.titleMedium
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 12.dp)
+                ) {
+                    IconButton(
+                        onClick = { scope.launch { drawerState.close() } },
+                        modifier = Modifier.align(Alignment.CenterStart)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Close menu"
+                        )
+                    }
+
+                    Text(
+                        "Admin",
+                        modifier = Modifier.align(Alignment.Center),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
 
                 NavigationDrawerItem(
                     label = { Text("Customers") },
@@ -241,43 +264,4 @@ fun BillingScreen(
 
     }
 
-}
-@Composable
-fun AdminDrawerContent(
-    onCustomersClick: () -> Unit,
-    onItemsClick: () -> Unit,
-    onCreditsClick: () -> Unit,
-    onReportsClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxHeight()
-            .width(260.dp)
-            .padding(16.dp)
-    ) {
-        Text(
-            text = "Admin",
-            style = MaterialTheme.typography.titleLarge
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        DrawerItem("Customers", onCustomersClick)
-        DrawerItem("Items", onItemsClick)
-        DrawerItem("Credits", onCreditsClick)
-        DrawerItem("Reports", onReportsClick)
-    }
-}
-
-@Composable
-private fun DrawerItem(
-    title: String,
-    onClick: () -> Unit
-) {
-    TextButton(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text(title)
-    }
 }

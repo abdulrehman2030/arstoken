@@ -20,7 +20,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -80,8 +79,7 @@ fun ItemTile(
                 ) {
                     Text(
                         text = "%.2f".format(quantityInCart).trimEnd('0').trimEnd('.'),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        fontSize = 12.sp
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
             }

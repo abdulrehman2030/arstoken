@@ -3,13 +3,20 @@ package com.ar.arstoken.ui.items
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import com.ar.arstoken.data.db.ItemEntity
 import com.ar.arstoken.viewmodel.ItemViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItemsScreen(
     viewModel: ItemViewModel,
@@ -26,27 +33,43 @@ fun ItemsScreen(
     var itemToDelete by remember { mutableStateOf<ItemEntity?>(null) }
 
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text("Items", style = MaterialTheme.typography.titleLarge)
-            TextButton(onClick = onBack) { Text("Back") }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Items") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                }
+            )
         }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp)
+        ) {
+        val fieldModifier = Modifier
+            .widthIn(max = 520.dp)
+            .heightIn(min = 48.dp)
+        val actionButtonModifier = Modifier
+            .widthIn(max = 240.dp)
+            .heightIn(min = 48.dp)
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(4.dp))
 
         OutlinedTextField(
             value = name,
             onValueChange = { name = it },
             label = { Text("Item name") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = fieldModifier,
+            shape = RoundedCornerShape(12.dp),
+            singleLine = true
         )
 
         Spacer(Modifier.height(8.dp))
@@ -55,7 +78,10 @@ fun ItemsScreen(
             value = price,
             onValueChange = { price = it },
             label = { Text("Price") },
-            modifier = Modifier.fillMaxWidth()
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            modifier = fieldModifier,
+            shape = RoundedCornerShape(12.dp),
+            singleLine = true
         )
 
         Spacer(Modifier.height(8.dp))
@@ -66,7 +92,7 @@ fun ItemsScreen(
                 name = ""
                 price = ""
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = actionButtonModifier
         ) {
             Text("Add Item")
         }
@@ -75,45 +101,46 @@ fun ItemsScreen(
 
         HorizontalDivider()
 
-        LazyColumn {
-            items(items) { item ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 6.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
-                ) {
-                    ListItem(
-                        headlineContent = { Text(item.name) },
-                        supportingContent = { Text("₹${item.price}") },
-                        trailingContent = {
-                            Row {
-                                TextButton(
-                                    onClick = {
-                                        selectedItem = item
-                                        editedPrice = item.price.toString()
-                                        showEditDialog = true
+            LazyColumn {
+                items(items) { item ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        )
+                    ) {
+                        ListItem(
+                            headlineContent = { Text(item.name) },
+                            supportingContent = { Text("₹${item.price}") },
+                            trailingContent = {
+                                Row {
+                                    TextButton(
+                                        onClick = {
+                                            selectedItem = item
+                                            editedPrice = item.price.toString()
+                                            showEditDialog = true
+                                        }
+                                    ) {
+                                        Text("Edit")
                                     }
-                                ) {
-                                    Text("Edit")
-                                }
 
-                                TextButton(
-                                    onClick = {
-                                        itemToDelete = item
-                                        showDeleteDialog = true
-                                    },
-                                    colors = ButtonDefaults.textButtonColors(
-                                        contentColor = MaterialTheme.colorScheme.error
-                                    )
-                                ) {
-                                    Text("Delete")
+                                    TextButton(
+                                        onClick = {
+                                            itemToDelete = item
+                                            showDeleteDialog = true
+                                        },
+                                        colors = ButtonDefaults.textButtonColors(
+                                            contentColor = MaterialTheme.colorScheme.error
+                                        )
+                                    ) {
+                                        Text("Delete")
+                                    }
                                 }
                             }
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
@@ -126,7 +153,11 @@ fun ItemsScreen(
                 OutlinedTextField(
                     value = editedPrice,
                     onValueChange = { editedPrice = it },
-                    label = { Text("Price") }
+                    label = { Text("Price") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.heightIn(min = 48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true
                 )
             },
             confirmButton = {

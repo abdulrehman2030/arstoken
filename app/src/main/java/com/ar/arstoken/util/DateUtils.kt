@@ -2,28 +2,6 @@ package com.ar.arstoken.util
 
 import java.util.Calendar
 
-object DateUtils {
-
-    fun todayRange(): Pair<Long, Long> {
-        val cal = Calendar.getInstance()
-
-        cal.set(Calendar.HOUR_OF_DAY, 0)
-        cal.set(Calendar.MINUTE, 0)
-        cal.set(Calendar.SECOND, 0)
-        cal.set(Calendar.MILLISECOND, 0)
-        val start = cal.timeInMillis
-
-        cal.set(Calendar.HOUR_OF_DAY, 23)
-        cal.set(Calendar.MINUTE, 59)
-        cal.set(Calendar.SECOND, 59)
-        cal.set(Calendar.MILLISECOND, 999)
-        val end = cal.timeInMillis
-
-        return start to end
-    }
-
-}
-
 fun startOfToday(): Long {
     return Calendar.getInstance().apply {
         set(Calendar.HOUR_OF_DAY, 0)
@@ -60,4 +38,3 @@ fun startOfMonth(): Long {
         set(Calendar.MILLISECOND, 0)
     }.timeInMillis
 }
-

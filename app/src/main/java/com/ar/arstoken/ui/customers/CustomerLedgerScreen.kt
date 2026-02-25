@@ -6,13 +6,16 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ar.arstoken.data.db.SaleEntity
 import com.ar.arstoken.viewmodel.CustomerLedgerViewModel
 import java.text.SimpleDateFormat
@@ -25,11 +28,15 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import com.ar.arstoken.model.SaleType
 import com.ar.arstoken.util.salesToCsv
 import com.ar.arstoken.util.shareText
+import androidx.compose.foundation.text.KeyboardOptions
+import kotlinx.coroutines.launch
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomerLedgerScreen(
     customerName: String,
@@ -37,6 +44,8 @@ fun CustomerLedgerScreen(
     viewModel: CustomerLedgerViewModel,
     onBack: () -> Unit
 ) {
+    val buttonTextSize = 10.sp
+
     // 1️⃣ Collect sales FIRST
     val sales by viewModel.sales.collectAsState<List<SaleEntity>>()
 
@@ -64,6 +73,8 @@ fun CustomerLedgerScreen(
      val context = LocalContext.current
      var showPaymentDialog by remember { mutableStateOf(false) }
      var paymentAmount by remember { mutableStateOf("") }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     if (showFilterScreen) {
         CustomerLedgerFilterScreen(
@@ -81,137 +92,161 @@ fun CustomerLedgerScreen(
         return
     }
 
-     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-
-        // Header
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = {
+            TopAppBar(
+                title = { Text(customerName) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp)
         ) {
-            Text(customerName, style = MaterialTheme.typography.titleLarge)
+            val totalDue = ledgerRows.lastOrNull()?.second ?: 0.0
 
             Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState())
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 560.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                TextButton(onClick = onBack) {
-                    Text("Back")
-                }
-
-                Spacer(Modifier.width(8.dp))
-
-                Button(onClick = { showPaymentDialog = true }) {
-                    Text("Receive Payment")
+                Button(
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        if (totalDue > 0.0) {
+                            showPaymentDialog = true
+                        } else {
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    "Total due is ₹$totalDue, can't receive payment."
+                                )
+                            }
+                        }
+                    }
+                ) {
+                    Text("Receive Payment", fontSize = buttonTextSize)
                 }
 
                 if (customerPhone.isNotBlank()) {
-                    Button(onClick = {
-                        val totalDue = ledgerRows.lastOrNull()?.second ?: 0.0
+                    Button(
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            val totalDue = ledgerRows.lastOrNull()?.second ?: 0.0
 
-                        val message = """
-            Hi $customerName,
-            Your pending balance at ARS Store is ₹$totalDue.
-            Please clear it at your convenience.
-        """.trimIndent()
+                            val message = """
+                                Hi $customerName,
+                                Your pending balance at ARS Store is ₹$totalDue.
+                                Please clear it at your convenience.
+                            """.trimIndent()
 
-                        openWhatsApp(
-                            context = context,
-                            phone = customerPhone,
-                            message = message
-                        )
-                    }) {
-                        Text("WhatsApp")
+                            openWhatsApp(
+                                context = context,
+                                phone = customerPhone,
+                                message = message
+                            )
+                        }
+                    ) {
+                        Text("WhatsApp", fontSize = buttonTextSize)
                     }
                 }
 
+                Button(
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        val csv = salesToCsv(
+                            customerName = customerName,
+                            sales = filteredSales
+                        )
 
-                Button(onClick = {
-                    val csv = salesToCsv(
-                        customerName = customerName,
-                        sales = filteredSales   // respects date filter
-                    )
-
-                    shareText(
-                        context = context,
-                        text = csv,
-                        title = "Ledger - $customerName"
-                    )
-                }) {
-                    Text("Export")
+                        shareText(
+                            context = context,
+                            text = csv,
+                            title = "Ledger - $customerName"
+                        )
+                    }
+                ) {
+                    Text("Export", fontSize = buttonTextSize)
                 }
-
-            }
-        }
-        val totalDue = ledgerRows.lastOrNull()?.second ?: 0.0
-
-        Text(
-            text = "Total Due: ₹$totalDue",
-            style = MaterialTheme.typography.titleMedium,
-            color = if (totalDue > 0)
-                MaterialTheme.colorScheme.error
-            else
-                MaterialTheme.colorScheme.primary
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        // Filter buttons
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            OutlinedButton(onClick = {
-                showFilterScreen = true
-            }) {
-                Text("Filter")
             }
 
-            OutlinedButton(onClick = {
-                fromDate = null
-                toDate = null
-                selectedMode = null
-            }) {
-                Text("Clear")
-            }
-        }
-
-        val filterSummary = remember(fromDate, toDate, selectedMode) {
-            buildFilterSummary(fromDate, toDate, selectedMode)
-        }
-        if (filterSummary != "No active filters") {
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
             Text(
-                text = filterSummary,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary
+                text = "Total Due: ₹$totalDue",
+                style = MaterialTheme.typography.titleMedium,
+                color = if (totalDue > 0)
+                    MaterialTheme.colorScheme.error
+                else
+                    MaterialTheme.colorScheme.primary
             )
-        }
 
-        Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
 
-        // Ledger list
-        LazyColumn {
-            if (ledgerRows.isEmpty()) {
-                item {
-                    Text(
-                        "No transactions found",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(24.dp),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(onClick = { showFilterScreen = true }) {
+                    Text("Filter", fontSize = buttonTextSize)
+                }
+
+                OutlinedButton(onClick = {
+                    fromDate = null
+                    toDate = null
+                    selectedMode = null
+                }) {
+                    Text("Clear", fontSize = buttonTextSize)
                 }
             }
-            items(items = ledgerRows) { (sale, balance) ->
-                LedgerRow(
-                    sale = sale,
-                    runningBalance = balance
+
+            val filterSummary = remember(fromDate, toDate, selectedMode) {
+                buildFilterSummary(fromDate, toDate, selectedMode)
+            }
+            if (filterSummary != "No active filters") {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = filterSummary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
                 )
-                HorizontalDivider()
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
+                if (ledgerRows.isEmpty()) {
+                    item {
+                        Text(
+                            "No transactions found",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+                items(items = ledgerRows) { (sale, balance) ->
+                    LedgerRow(
+                        sale = sale,
+                        runningBalance = balance
+                    )
+                    HorizontalDivider()
+                }
             }
         }
     }
@@ -229,6 +264,9 @@ fun CustomerLedgerScreen(
                         value = paymentAmount,
                         onValueChange = { paymentAmount = it },
                         label = { Text("Amount received") },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Decimal
+                        ),
                         singleLine = true
                     )
 

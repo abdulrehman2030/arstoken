@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import com.ar.arstoken.data.db.AppDatabase
 import com.ar.arstoken.data.repository.*
 import com.ar.arstoken.model.Customer
@@ -39,7 +40,7 @@ class MainActivity : ComponentActivity() {
                 // ----------------------------
                 // App-level navigation state
                 // ----------------------------
-                var currentScreen by remember {
+                var currentScreen by rememberSaveable {
                     mutableStateOf(AdminScreen.BILLING)
                 }
                 var showSavedMessage by remember { mutableStateOf(false) }
@@ -66,7 +67,9 @@ class MainActivity : ComponentActivity() {
 
                 val customerRepo = remember { RoomCustomerRepository(db) }
                 val itemRepo = remember { RoomItemRepository(db) }
-                var selectedCustomer by remember { mutableStateOf<Customer?>(null) }
+                var selectedCustomerId by rememberSaveable { mutableStateOf<Int?>(null) }
+                var selectedCustomerName by rememberSaveable { mutableStateOf<String?>(null) }
+                var selectedCustomerPhone by rememberSaveable { mutableStateOf<String?>(null) }
                 val customerViewModel = remember {
                     CustomerViewModel(
                         customerRepository = customerRepo,
@@ -124,7 +127,9 @@ class MainActivity : ComponentActivity() {
                         CustomersScreen(
                             viewModel = customerViewModel,
                             onCustomerSelected = {
-                                selectedCustomer = it
+                                selectedCustomerId = it.id
+                                selectedCustomerName = it.name
+                                selectedCustomerPhone = it.phone
                                 currentScreen = AdminScreen.CUSTOMER_LEDGER
                             },
                             onBack = { currentScreen = AdminScreen.BILLING }
@@ -132,19 +137,21 @@ class MainActivity : ComponentActivity() {
                     }
 
                     AdminScreen.CUSTOMER_LEDGER -> {
-                        val customer = selectedCustomer
-                        if (customer != null) {
-                            val ledgerVm = remember(customer.id, customer.name) {
+                        val customerId = selectedCustomerId
+                        val customerName = selectedCustomerName
+                        val customerPhone = selectedCustomerPhone
+                        if (customerId != null && customerName != null) {
+                            val ledgerVm = remember(customerId, customerName) {
                                 CustomerLedgerViewModel(
-                                    customerId = customer.id,
-                                    customerName = customer.name,
+                                    customerId = customerId,
+                                    customerName = customerName,
                                     saleRepository = saleRepo
                                 )
                             }
 
                             CustomerLedgerScreen(
-                                customerName = customer.name,
-                                customerPhone = customer.phone,
+                                customerName = customerName,
+                                customerPhone = customerPhone.orEmpty(),
                                 viewModel = ledgerVm,
                                 onBack = {
                                     currentScreen = AdminScreen.CUSTOMERS
@@ -173,6 +180,9 @@ class MainActivity : ComponentActivity() {
                         SettingsScreen(
                             viewModel = settingsViewModel,
                             onBack = {
+                                currentScreen = AdminScreen.BILLING
+                            },
+                            onSaved = {
                                 showSavedMessage = true
                                 currentScreen = AdminScreen.BILLING
                             }

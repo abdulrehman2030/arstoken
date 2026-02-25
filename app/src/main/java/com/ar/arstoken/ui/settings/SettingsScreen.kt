@@ -1,10 +1,16 @@
 package com.ar.arstoken.ui.settings
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import com.ar.arstoken.viewmodel.SettingsViewModel
 import kotlinx.coroutines.launch
 
@@ -12,7 +18,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onSaved: () -> Unit
 ) {
     val settings by viewModel.settings.collectAsState()
 
@@ -30,8 +37,13 @@ fun SettingsScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Store Settings") },
-                actions = {
-                    TextButton(onClick = onBack) { Text("Back") }
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
                 }
             )
         },
@@ -44,13 +56,22 @@ fun SettingsScreen(
                 .padding(16.dp)
                 .padding(padding)
         ) {
+            val fieldModifier = Modifier
+                .widthIn(max = 520.dp)
+                .heightIn(min = 48.dp)
+            val actionButtonModifier = Modifier
+                .widthIn(max = 240.dp)
+                .heightIn(min = 48.dp)
+
             Spacer(Modifier.height(8.dp))
 
             OutlinedTextField(
                 value = storeName,
                 onValueChange = { storeName = it },
                 label = { Text("Store Name") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = fieldModifier,
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true
             )
 
             Spacer(Modifier.height(12.dp))
@@ -59,13 +80,16 @@ fun SettingsScreen(
                 value = phone,
                 onValueChange = { phone = it },
                 label = { Text("Phone Number") },
-                modifier = Modifier.fillMaxWidth()
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                modifier = fieldModifier,
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true
             )
 
             Spacer(Modifier.height(24.dp))
 
             Button(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = actionButtonModifier,
                 onClick = {
                     viewModel.save(storeName, phone)
 
@@ -73,7 +97,7 @@ fun SettingsScreen(
                         snackbarHostState.showSnackbar("Saved successfully")
                     }
 
-                    onBack()   // 👈 IMMEDIATE NAVIGATION
+                    onSaved()
                 }
             ) {
                 Text("Save")
