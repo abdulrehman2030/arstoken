@@ -2,9 +2,6 @@ package com.ar.arstoken.data.repository
 
 import com.ar.arstoken.data.SaleRepository
 import com.ar.arstoken.data.db.*
-import com.ar.arstoken.model.Sale
-import com.ar.arstoken.model.SaleItem
-import com.ar.arstoken.model.SaleType
 import kotlinx.coroutines.flow.Flow
 
 
@@ -18,6 +15,10 @@ class RoomSaleRepository(
 
     override suspend fun saveSaleItems(items: List<SaleItemEntity>) {
         db.saleItemDao().insertAll(items)
+    }
+
+    override suspend fun saveCreditLedgerEntry(entry: CreditLedgerEntity) {
+        db.creditLedgerDao().insert(entry)
     }
 
 

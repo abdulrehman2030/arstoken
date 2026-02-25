@@ -23,48 +23,80 @@ fun BillingScreen(
     viewModel: BillingViewModel,
     onOpenReports: () -> Unit,
     onOpenCustomers: () -> Unit,
-    onOpenItems: () -> Unit
+    onOpenItems: () -> Unit,
+    onOpenSettings: () -> Unit,
+    showSavedMessage: Boolean,
+    onSnackbarShown: () -> Unit
 ) {
     val items by viewModel.items.collectAsState()
     val total = viewModel.getTotal()
 
     val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
     var showEditSheet by remember { mutableStateOf(false) }
     var selectedItem by remember { mutableStateOf<Item?>(null) }
     var showMoreSheet by remember { mutableStateOf(false) }
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
     var editQuantity by remember { mutableStateOf(1.0) }
     var editTotalPrice by remember { mutableStateOf(0.0) }
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val moreSheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true
+    )
+    val scope = rememberCoroutineScope()
 
-
+    // 🔔 Show snackbar when coming back from Settings
+    LaunchedEffect(showSavedMessage) {
+        if (showSavedMessage) {
+            snackbarHostState.showSnackbar("Saved successfully")
+            onSnackbarShown()
+        }
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
+
             ModalDrawerSheet {
-                AdminDrawerContent(
-                    onCustomersClick = {
-                        scope.launch {
-                            drawerState.close()
-                            onOpenCustomers()
-                        }
-                    },
-                    onItemsClick = {
-                        scope.launch {
-                            drawerState.close()
-                            onOpenItems()
-                        }
-                    },
-                    onCreditsClick = {
-                        // navigate later
+
+                Text(
+                    "Admin",
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                NavigationDrawerItem(
+                    label = { Text("Customers") },
+                    selected = false,
+                    onClick = {
                         scope.launch { drawerState.close() }
-                    },
-                    onReportsClick = {
-                        scope.launch {
-                            drawerState.close()
-                            onOpenReports()
-                        }
+                        onOpenCustomers()
+                    }
+                )
+
+                NavigationDrawerItem(
+                    label = { Text("Items") },
+                    selected = false,
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        onOpenItems()
+                    }
+                )
+
+                NavigationDrawerItem(
+                    label = { Text("Reports") },
+                    selected = false,
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        onOpenReports()
+                    }
+                )
+
+                // ⭐ THIS IS YOUR SETTINGS ENTRY
+                NavigationDrawerItem(
+                    label = { Text("Settings") },
+                    selected = false,
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        onOpenSettings()   // 👈 HERE
                     }
                 )
             }
@@ -74,12 +106,22 @@ fun BillingScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("ARS Token") },
+                    title = {
+                        Column {
+                            Text("ARS Token")
+                            Text(
+                                "Tap to add • Long press to edit",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
                     navigationIcon = {
                         IconButton(onClick = {
-                            scope.launch {
-                                drawerState.open()
-                            }
+                            scope.launch { drawerState.open() }
                         }) {
                             Icon(Icons.Default.MoreVert, contentDescription = "Menu")
                         }
@@ -115,7 +157,9 @@ fun BillingScreen(
                 columns = GridCells.Fixed(3),
                 modifier = Modifier
                     .padding(padding)
-                    .padding(8.dp)
+                    .padding(horizontal = 8.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 items(items) { item ->
                     ItemTile(
@@ -176,12 +220,14 @@ fun BillingScreen(
         if (showMoreSheet) {
             ModalBottomSheet(
                 onDismissRequest = { showMoreSheet = false },
+                sheetState = moreSheetState
             ) {
                 val customers by viewModel.customers.collectAsState()
 
                 MoreOptionsSheet(
                     customers = customers,
                     selectedCustomer = viewModel.selectedCustomer,
+                    total = total,
                     paymentMode = viewModel.paymentMode,
                     partialPaidAmount = viewModel.partialPaidAmount,
                     onCustomerSelected = viewModel::selectCustomer,
@@ -235,4 +281,3 @@ private fun DrawerItem(
         Text(title)
     }
 }
-

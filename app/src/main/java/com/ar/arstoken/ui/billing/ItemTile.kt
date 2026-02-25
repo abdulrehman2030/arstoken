@@ -5,8 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
@@ -31,50 +31,59 @@ fun ItemTile(
     onClick: () -> Unit,
     onLongPress: () -> Unit
 ) {
-    Box(
+    Card(
         modifier = Modifier
             .padding(6.dp)
             .fillMaxWidth()
             .height(90.dp)
-            .background(
-                color = if (quantityInCart != null)
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                else
-                    MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(12.dp)
-            )
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongPress
-            )
+            ),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (quantityInCart != null)
+                MaterialTheme.colorScheme.primaryContainer
+            else
+                MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-
-        Column(
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .padding(12.dp)
-        ) {
-            Text(name, fontWeight = FontWeight.Bold)
-            Text("₹$price")
-        }
-
-        // Quantity badge
-        if (quantityInCart != null) {
-            Box(
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(6.dp)
-                    .background(
-                        MaterialTheme.colorScheme.primary,
-                        shape = CircleShape
-                    )
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .align(Alignment.CenterStart)
+                    .padding(12.dp)
             ) {
                 Text(
-                    text = quantityInCart.toString(),
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    fontSize = 12.sp
+                    text = name,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1
                 )
+                Text(
+                    "₹$price",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // Quantity badge
+            if (quantityInCart != null) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(6.dp)
+                        .background(
+                            MaterialTheme.colorScheme.primary,
+                            shape = CircleShape
+                        )
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "%.2f".format(quantityInCart).trimEnd('0').trimEnd('.'),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontSize = 12.sp
+                    )
+                }
             }
         }
     }

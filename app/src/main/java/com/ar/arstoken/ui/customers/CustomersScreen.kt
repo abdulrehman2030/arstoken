@@ -1,6 +1,5 @@
 package com.ar.arstoken.ui.customers
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -75,18 +74,17 @@ fun CustomersScreen(
 
         Spacer(Modifier.height(16.dp))
 
-        Divider()
+        HorizontalDivider()
 
         Spacer(Modifier.height(8.dp))
 
         // Customer list
         LazyColumn {
             items(customers) { customer ->
-                ListItem(
-                    headlineContent = { Text(customer.name) },
-                    supportingContent = { Text("Due: ₹${customer.creditBalance}") },
+                Card(
                     modifier = Modifier
-                        .clickable { onCustomerSelected(customer) }
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp)
                         .combinedClickable(
                             onClick = { onCustomerSelected(customer) },
                             onLongClick = {
@@ -94,9 +92,16 @@ fun CustomersScreen(
                                 phoneInput = customer.phone
                                 showEditDialog = true
                             }
-                        )
-
-                )
+                        ),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                ) {
+                    ListItem(
+                        headlineContent = { Text(customer.name) },
+                        supportingContent = { Text("Due: ₹${customer.creditBalance}") }
+                    )
+                }
             }
         }
         if (showEditDialog && editingCustomer != null) {

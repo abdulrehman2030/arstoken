@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 432 432">
+  <path fill="#FFFFFF" d="M129 78h174c10 0 18 8 18 18v188l-18-11-18 11-18-11-18 11-18-11-18 11-18-11-18 11-18-11-18 11V96c0-10 8-18 18-18z"/>
+  <text x="216" y="242" text-anchor="middle" font-size="74" font-family="Noto Sans, Segoe UI Symbol, Arial, sans-serif" fill="#0E7C66">₹</text>
+  <circle cx="300" cy="294" r="40" fill="#F4B400"/>
+  <path d="M282 295l13 13 25-25" fill="none" stroke="#FFFFFF" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

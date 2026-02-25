@@ -1,6 +1,7 @@
 package com.ar.arstoken.ui.billing
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,7 +24,10 @@ fun BottomActionBar(
     onProceed: () -> Unit,
     onMore: () -> Unit
 ) {
-    Surface(shadowElevation = 8.dp) {
+    Surface(
+        tonalElevation = 3.dp,
+        shadowElevation = 8.dp
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -31,12 +35,18 @@ fun BottomActionBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-
-            Text(
-                text = "₹ %.2f".format(total),
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.titleLarge
-            )
+            Column {
+                Text(
+                    text = "Total",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "₹ %.2f".format(total),
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLarge
+                )
+            }
 
             Row {
                 OutlinedButton(onClick = onMore) {
@@ -52,4 +62,3 @@ fun BottomActionBar(
         }
     }
 }
-

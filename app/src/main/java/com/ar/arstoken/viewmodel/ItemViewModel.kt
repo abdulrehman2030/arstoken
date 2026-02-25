@@ -27,4 +27,10 @@ class ItemViewModel(
             repository.updatePrice(itemId, price)
         }
     }
+
+    fun deleteItem(itemId: Int) {
+        viewModelScope.launch {
+            repository.deleteItem(itemId)
+        }
+    }
 }

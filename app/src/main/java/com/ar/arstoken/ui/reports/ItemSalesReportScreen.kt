@@ -3,7 +3,9 @@ package com.ar.arstoken.ui.reports
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Divider
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -60,12 +62,21 @@ fun ItemSalesReportScreen(
         LazyColumn {
             // ✅ FIXED: correct LazyColumn items()
             items(items) { row ->
-                Column(Modifier.padding(vertical = 8.dp)) {
-                    Text(row.itemName, fontWeight = FontWeight.Bold)
-                    Text("Qty: ${row.totalQty}")
-                    Text("Amount: ₹${row.totalAmount}")
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                ) {
+                    Column(Modifier.padding(12.dp)) {
+                        Text(row.itemName, fontWeight = FontWeight.Bold)
+                        Text("Qty: ${row.totalQty}")
+                        Text("Amount: ₹${row.totalAmount}")
+                    }
                 }
-                Divider()
+                HorizontalDivider()
             }
         }
     }

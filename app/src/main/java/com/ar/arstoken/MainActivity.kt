@@ -13,7 +13,7 @@ import com.ar.arstoken.ui.customers.CustomerLedgerScreen
 import com.ar.arstoken.ui.customers.CustomersScreen
 import com.ar.arstoken.ui.items.ItemsScreen
 import com.ar.arstoken.ui.reports.ItemSalesReportScreen
-import com.ar.arstoken.ui.reports.ReportScreen
+import com.ar.arstoken.ui.settings.SettingsScreen
 import com.ar.arstoken.ui.theme.ARSTokenTheme
 import com.ar.arstoken.viewmodel.*
 
@@ -22,8 +22,8 @@ enum class AdminScreen {
     REPORTS,
     CUSTOMERS,
     ITEMS,
-    CUSTOMER_LEDGER
-
+    CUSTOMER_LEDGER,
+    SETTINGS
 }
 
 
@@ -42,6 +42,7 @@ class MainActivity : ComponentActivity() {
                 var currentScreen by remember {
                     mutableStateOf(AdminScreen.BILLING)
                 }
+                var showSavedMessage by remember { mutableStateOf(false) }
 
                 // ----------------------------
                 // Database (single instance)
@@ -49,16 +50,19 @@ class MainActivity : ComponentActivity() {
                 val db = remember {
                     AppDatabase.get(applicationContext)
                 }
+                val settingsRepo = remember {
+                    RoomSettingsRepository(db.storeSettingsDao())
+                }
+
+                val settingsViewModel = remember {
+                    SettingsViewModel(settingsRepo)
+                }
 
                 // ----------------------------
                 // Repositories (single instance)
                 // ----------------------------
                 val saleRepo = remember { RoomSaleRepository(db) }
                 val reportRepo: RoomReportRepository = RoomReportRepository(db)
-
-                val reportViewModel = remember {
-                    ReportViewModel(reportRepo)
-                }
 
                 val customerRepo = remember { RoomCustomerRepository(db) }
                 val itemRepo = remember { RoomItemRepository(db) }
@@ -77,7 +81,8 @@ class MainActivity : ComponentActivity() {
                     BillingViewModel(
                         saleRepository = saleRepo,
                         itemRepository = itemRepo,
-                        customerRepository = customerRepo
+                        customerRepository = customerRepo,
+                        settingsRepository = settingsRepo
                     )
                 }
                 when (currentScreen) {
@@ -93,12 +98,19 @@ class MainActivity : ComponentActivity() {
                             },
                             onOpenItems = {
                                 currentScreen = AdminScreen.ITEMS
-                            }
+                            },
+                            onOpenSettings = {          // 👈 ADD
+                                currentScreen = AdminScreen.SETTINGS
+                            },
+                            showSavedMessage = showSavedMessage,
+                            onSnackbarShown = { showSavedMessage = false }
                         )
                     }
 
                     AdminScreen.REPORTS -> {
-                        val vm = ItemSalesViewModel(reportRepo)
+                        val vm = remember(reportRepo) {
+                            ItemSalesViewModel(reportRepo)
+                        }
 
                         ItemSalesReportScreen(
                             viewModel = vm,
@@ -122,9 +134,10 @@ class MainActivity : ComponentActivity() {
                     AdminScreen.CUSTOMER_LEDGER -> {
                         val customer = selectedCustomer
                         if (customer != null) {
-                            val ledgerVm = remember(customer.id) {
+                            val ledgerVm = remember(customer.id, customer.name) {
                                 CustomerLedgerViewModel(
                                     customerId = customer.id,
+                                    customerName = customer.name,
                                     saleRepository = saleRepo
                                 )
                             }
@@ -155,6 +168,17 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     }
+                    AdminScreen.SETTINGS -> {
+
+                        SettingsScreen(
+                            viewModel = settingsViewModel,
+                            onBack = {
+                                showSavedMessage = true
+                                currentScreen = AdminScreen.BILLING
+                            }
+                        )
+                    }
+
                 }
             }
         }

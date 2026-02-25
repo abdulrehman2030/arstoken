@@ -1,6 +1,8 @@
 package com.ar.arstoken.ui.billing
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -11,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.verticalScroll
 import com.ar.arstoken.model.Customer
 import com.ar.arstoken.model.PaymentMode
 
@@ -19,6 +22,7 @@ import com.ar.arstoken.model.PaymentMode
 fun MoreOptionsSheet(
     customers: List<Customer>,
     selectedCustomer: Customer?,
+    total: Double,
     paymentMode: PaymentMode,
     partialPaidAmount: Double,
     onPartialAmountChange: (String) -> Unit,
@@ -26,23 +30,23 @@ fun MoreOptionsSheet(
     onPaymentModeChange: (PaymentMode) -> Unit,
     onSummary: () -> Unit
 ) {
+    val isPartialValid = paymentMode != PaymentMode.PARTIAL ||
+        (partialPaidAmount > 0.0 && partialPaidAmount < total)
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .imePadding()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
+        Text("Bill Options", style = MaterialTheme.typography.titleLarge)
+        Spacer(modifier = Modifier.height(12.dp))
 
-        // -----------------
-        // Customer section
-        // -----------------
         Text("Customer", style = MaterialTheme.typography.titleMedium)
-
         Spacer(modifier = Modifier.height(8.dp))
 
         var expanded by remember { mutableStateOf(false) }
-
-        Text("Customer", style = MaterialTheme.typography.titleMedium)
-        Spacer(modifier = Modifier.height(8.dp))
 
         ExposedDropdownMenuBox(
             expanded = expanded,
@@ -88,9 +92,6 @@ fun MoreOptionsSheet(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // -----------------
-        // Payment section
-        // -----------------
         Text("Payment Type", style = MaterialTheme.typography.titleMedium)
 
         PaymentRadio(
@@ -121,12 +122,21 @@ fun MoreOptionsSheet(
                 ),
                 modifier = Modifier.fillMaxWidth()
             )
+            if (!isPartialValid) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Partial amount must be greater than 0 and less than total (₹$total).",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(
             onClick = onSummary,
+            enabled = isPartialValid,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Summary")
@@ -142,7 +152,10 @@ private fun PaymentRadio(
     onClick: () -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(label)

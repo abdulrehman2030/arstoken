@@ -2,30 +2,34 @@ package com.ar.arstoken.viewmodel
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
-import androidx.lifecycle.ViewModel
-import com.ar.arstoken.model.CartItem
-import com.ar.arstoken.model.Item
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.ViewModel
 import com.ar.arstoken.data.SaleRepository
-import com.ar.arstoken.model.Customer
-import com.ar.arstoken.model.PaymentMode
 import androidx.lifecycle.viewModelScope
+import com.ar.arstoken.data.db.CreditLedgerEntity
 import com.ar.arstoken.data.db.SaleEntity
 import com.ar.arstoken.data.db.SaleItemEntity
 import com.ar.arstoken.data.repository.CustomerRepository
 import com.ar.arstoken.data.repository.ItemRepository
-import kotlinx.coroutines.launch
-import com.ar.arstoken.model.*
+import com.ar.arstoken.data.repository.SettingsRepository
+import com.ar.arstoken.model.CartItem
+import com.ar.arstoken.model.Customer
+import com.ar.arstoken.model.Item
+import com.ar.arstoken.model.PaymentMode
+import com.ar.arstoken.util.ThermalPrinterHelper
+import com.ar.arstoken.util.formatReceipt
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 
 class BillingViewModel(
     private val saleRepository: SaleRepository,
     private val itemRepository: ItemRepository,
-    private val customerRepository: CustomerRepository
+    private val customerRepository: CustomerRepository,
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
 
     val customers = customerRepository.getCustomers()
@@ -114,12 +118,14 @@ class BillingViewModel(
 
         if (unitPrice.isNaN() || unitPrice.isInfinite()) return
 
-        _cart.add(
-            CartItem(
-                item = item.copy(price = unitPrice),
-                qty = quantity
-            )
+        val updatedItem = CartItem(
+            item = item.copy(price = unitPrice),
+            qty = quantity
         )
+
+        // Keep one cart row per item id to avoid duplicated totals/badges.
+        _cart.removeAll { it.item.id == item.id }
+        _cart.add(updatedItem)
     }
 
 
@@ -178,26 +184,18 @@ class BillingViewModel(
         val total = getTotal()
         if (total <= 0 || total.isNaN()) return
 
-        // Enforce customer for CREDIT / PARTIAL
-        if (
-            (paymentMode == PaymentMode.CREDIT || paymentMode == PaymentMode.PARTIAL)
-            && selectedCustomer == null
-        ) return
-
-        val paidAmount: Double = when (paymentMode) {
-            PaymentMode.CASH -> total
-
-            PaymentMode.CREDIT -> 0.0
-
-            PaymentMode.PARTIAL -> {
-                if (partialPaidAmount <= 0.0) return
-                if (partialPaidAmount >= total) return
-                partialPaidAmount
-            }
-        }
-
         val customerId = selectedCustomer?.id ?: 0
         val customerName = selectedCustomer?.name ?: "Retail"
+
+        val paidAmount = when (paymentMode) {
+            PaymentMode.CASH -> total
+            PaymentMode.CREDIT -> 0.0
+            PaymentMode.PARTIAL -> partialPaidAmount
+        }
+
+        if (paymentMode == PaymentMode.PARTIAL &&
+            (paidAmount <= 0.0 || paidAmount >= total)
+        ) return
 
         val sale = SaleEntity(
             timestamp = System.currentTimeMillis(),
@@ -210,8 +208,11 @@ class BillingViewModel(
         )
 
         viewModelScope.launch {
+
+            // 1️⃣ SAVE SALE
             val saleId = saleRepository.saveSale(sale)
 
+            // 2️⃣ MAP CART → SALE ITEMS
             val saleItems = cart.map { cartItem ->
                 SaleItemEntity(
                     saleId = saleId.toInt(),
@@ -224,31 +225,38 @@ class BillingViewModel(
                 )
             }
 
+            // 3️⃣ SAVE ITEMS
             saleRepository.saveSaleItems(saleItems)
+
+            // 3️⃣b SAVE LEDGER ENTRY (customer credit tracking)
+            if (customerId > 0 && sale.dueAmount > 0.0) {
+                saleRepository.saveCreditLedgerEntry(
+                    CreditLedgerEntity(
+                        customerId = customerId,
+                        customerName = customerName,
+                        saleId = saleId.toString(),
+                        timestamp = sale.timestamp,
+                        totalAmount = sale.totalAmount,
+                        paidAmount = sale.paidAmount,
+                        dueAmount = sale.dueAmount
+                    )
+                )
+            }
+
+            // 4️⃣ PRINT
+            val settings = settingsRepository.getOnce()
+
+            val receipt = formatReceipt(
+                storeName = settings.storeName,
+                phone = settings.phone,
+                sale = sale.copy(id = saleId.toInt()),
+                items = saleItems
+            )
+
+            ThermalPrinterHelper().printToPairedPrinter(receipt)
+
             clearCart()
         }
-    }
-
-
-
-    private fun Sale.toEntity(): SaleEntity {
-        return SaleEntity(
-            customerId = customerId,
-            customerName = customerName,
-            totalAmount = totalAmount,
-            paidAmount = paidAmount,
-            dueAmount = totalAmount - paidAmount,
-            saleType = saleType.toString(),
-            timestamp = timestamp
-        )
-
-    }
-
-
-    private fun resetExtras() {
-        selectedCustomer = null
-        paymentMode = PaymentMode.CASH
-        partialPaidAmount = 0.0
     }
 
 

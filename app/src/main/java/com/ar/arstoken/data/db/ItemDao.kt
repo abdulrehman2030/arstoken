@@ -20,4 +20,11 @@ interface ItemDao {
         WHERE id = :itemId
     """)
     suspend fun updatePrice(itemId: Int, price: Double)
+
+    @Query("""
+        UPDATE items
+        SET isActive = 0
+        WHERE id = :itemId
+    """)
+    suspend fun softDelete(itemId: Int)
 }

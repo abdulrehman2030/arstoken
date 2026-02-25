@@ -1,0 +1,14 @@
+package com.ar.arstoken.data.db
+
+import androidx.room.*
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface StoreSettingsDao {
+
+    @Query("SELECT * FROM store_settings WHERE id = 1")
+    fun observeSettings(): Flow<StoreSettingsEntity?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun save(settings: StoreSettingsEntity)
+}

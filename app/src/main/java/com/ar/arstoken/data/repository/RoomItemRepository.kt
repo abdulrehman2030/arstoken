@@ -16,7 +16,6 @@ class RoomItemRepository(
     override suspend fun addItem(name: String, price: Double) {
         dao.insert(
             ItemEntity(
-                id = (name + price).hashCode(),
                 name = name,
                 price = price
             )
@@ -25,5 +24,9 @@ class RoomItemRepository(
 
     override suspend fun updatePrice(itemId: Int, price: Double) {
         dao.updatePrice(itemId, price)
+    }
+
+    override suspend fun deleteItem(itemId: Int) {
+        dao.softDelete(itemId)
     }
 }

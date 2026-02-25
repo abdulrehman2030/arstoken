@@ -1,12 +1,16 @@
 package com.ar.arstoken.ui.customers
 
+import android.app.DatePickerDialog
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import com.ar.arstoken.ui.customers.LedgerRow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ar.arstoken.data.db.SaleEntity
@@ -39,13 +43,17 @@ fun CustomerLedgerScreen(
     // 2️⃣ Date filter state
     var fromDate by remember { mutableStateOf<Long?>(null) }
     var toDate by remember { mutableStateOf<Long?>(null) }
+    var selectedMode by remember { mutableStateOf<SaleType?>(null) }
+    var showFilterScreen by remember { mutableStateOf(false) }
 
     // 3️⃣ FILTERED SALES (THIS WAS MISSING / MISPLACED)
-    val filteredSales = remember(sales, fromDate, toDate) {
+    val filteredSales = remember(sales, fromDate, toDate, selectedMode) {
         sales.filter { sale ->
             val ts = sale.timestamp
-            (fromDate == null || ts >= fromDate!!) &&
-                    (toDate == null || ts <= toDate!!)
+            val modeOk = selectedMode == null || sale.saleType == selectedMode!!.name
+            modeOk &&
+                (fromDate == null || ts >= fromDate!!) &&
+                (toDate == null || ts <= toDate!!)
         }
     }
 
@@ -56,6 +64,22 @@ fun CustomerLedgerScreen(
      val context = LocalContext.current
      var showPaymentDialog by remember { mutableStateOf(false) }
      var paymentAmount by remember { mutableStateOf("") }
+
+    if (showFilterScreen) {
+        CustomerLedgerFilterScreen(
+            initialFromDate = fromDate,
+            initialToDate = toDate,
+            initialMode = selectedMode,
+            onApply = { newFrom, newTo, mode ->
+                fromDate = newFrom
+                toDate = newTo
+                selectedMode = mode
+                showFilterScreen = false
+            },
+            onCancel = { showFilterScreen = false }
+        )
+        return
+    }
 
      Column(
         modifier = Modifier
@@ -71,7 +95,9 @@ fun CustomerLedgerScreen(
         ) {
             Text(customerName, style = MaterialTheme.typography.titleLarge)
 
-            Row {
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState())
+            ) {
                 TextButton(onClick = onBack) {
                     Text("Back")
                 }
@@ -139,28 +165,30 @@ fun CustomerLedgerScreen(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             OutlinedButton(onClick = {
-                val cal = Calendar.getInstance()
-                cal.set(Calendar.HOUR_OF_DAY, 0)
-                cal.set(Calendar.MINUTE, 0)
-                cal.set(Calendar.SECOND, 0)
-                cal.set(Calendar.MILLISECOND, 0)
-                fromDate = cal.timeInMillis
-
-                cal.set(Calendar.HOUR_OF_DAY, 23)
-                cal.set(Calendar.MINUTE, 59)
-                cal.set(Calendar.SECOND, 59)
-                cal.set(Calendar.MILLISECOND, 999)
-                toDate = cal.timeInMillis
+                showFilterScreen = true
             }) {
-                Text("Today")
+                Text("Filter")
             }
 
             OutlinedButton(onClick = {
                 fromDate = null
                 toDate = null
+                selectedMode = null
             }) {
                 Text("Clear")
             }
+        }
+
+        val filterSummary = remember(fromDate, toDate, selectedMode) {
+            buildFilterSummary(fromDate, toDate, selectedMode)
+        }
+        if (filterSummary != "No active filters") {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = filterSummary,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary
+            )
         }
 
         Spacer(Modifier.height(8.dp))
@@ -183,7 +211,7 @@ fun CustomerLedgerScreen(
                     sale = sale,
                     runningBalance = balance
                 )
-                Divider()
+                HorizontalDivider()
             }
         }
     }
@@ -243,6 +271,190 @@ fun CustomerLedgerScreen(
     }
 
 
+}
+
+@Composable
+private fun CustomerLedgerFilterScreen(
+    initialFromDate: Long?,
+    initialToDate: Long?,
+    initialMode: SaleType?,
+    onApply: (Long?, Long?, SaleType?) -> Unit,
+    onCancel: () -> Unit
+) {
+    val context = LocalContext.current
+    val displayFormat = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
+
+    var fromDate by remember { mutableStateOf(initialFromDate) }
+    var toDate by remember { mutableStateOf(initialToDate) }
+    var mode by remember { mutableStateOf(initialMode) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Ledger Filters", style = MaterialTheme.typography.titleLarge)
+            TextButton(onClick = onCancel) { Text("Back") }
+        }
+
+        Spacer(Modifier.height(16.dp))
+        Text("Payment Mode", style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(8.dp))
+
+        ModeOption(label = "Any", selected = mode == null, onClick = { mode = null })
+        ModeOption(label = "Cash", selected = mode == SaleType.CASH, onClick = { mode = SaleType.CASH })
+        ModeOption(label = "Credit", selected = mode == SaleType.CREDIT, onClick = { mode = SaleType.CREDIT })
+        ModeOption(label = "Partial", selected = mode == SaleType.PARTIAL, onClick = { mode = SaleType.PARTIAL })
+        ModeOption(label = "Payment Received", selected = mode == SaleType.PAYMENT, onClick = { mode = SaleType.PAYMENT })
+
+        Spacer(Modifier.height(16.dp))
+        Text("Date Range", style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(8.dp))
+
+        OutlinedButton(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = {
+                showDatePicker(
+                    context = context,
+                    initialTime = fromDate,
+                    onPicked = { picked -> fromDate = startOfDay(picked) }
+                )
+            }
+        ) {
+            Text(fromDate?.let { "From: ${displayFormat.format(Date(it))}" } ?: "Select From Date")
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        OutlinedButton(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = {
+                showDatePicker(
+                    context = context,
+                    initialTime = toDate,
+                    onPicked = { picked -> toDate = endOfDay(picked) }
+                )
+            }
+        ) {
+            Text(toDate?.let { "To: ${displayFormat.format(Date(it))}" } ?: "Select To Date")
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        TextButton(
+            onClick = {
+                fromDate = null
+                toDate = null
+            }
+        ) {
+            Text("Clear Dates")
+        }
+
+        Spacer(Modifier.height(24.dp))
+
+        Button(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = {
+                onApply(
+                    fromDate,
+                    toDate,
+                    mode
+                )
+            }
+        ) {
+            Text("Apply Filters")
+        }
+    }
+}
+
+@Composable
+private fun ModeOption(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label)
+        RadioButton(selected = selected, onClick = onClick)
+    }
+}
+
+private fun showDatePicker(
+    context: android.content.Context,
+    initialTime: Long?,
+    onPicked: (Long) -> Unit
+) {
+    val calendar = Calendar.getInstance().apply {
+        if (initialTime != null) {
+            timeInMillis = initialTime
+        }
+    }
+
+    DatePickerDialog(
+        context,
+        { _, year, month, day ->
+            val picked = Calendar.getInstance().apply {
+                set(Calendar.YEAR, year)
+                set(Calendar.MONTH, month)
+                set(Calendar.DAY_OF_MONTH, day)
+            }.timeInMillis
+            onPicked(picked)
+        },
+        calendar.get(Calendar.YEAR),
+        calendar.get(Calendar.MONTH),
+        calendar.get(Calendar.DAY_OF_MONTH)
+    ).show()
+}
+
+private fun startOfDay(time: Long): Long {
+    return Calendar.getInstance().apply {
+        timeInMillis = time
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
+}
+
+private fun endOfDay(time: Long): Long {
+    return Calendar.getInstance().apply {
+        timeInMillis = time
+        set(Calendar.HOUR_OF_DAY, 23)
+        set(Calendar.MINUTE, 59)
+        set(Calendar.SECOND, 59)
+        set(Calendar.MILLISECOND, 999)
+    }.timeInMillis
+}
+
+private fun buildFilterSummary(
+    fromDate: Long?,
+    toDate: Long?,
+    mode: SaleType?
+): String {
+    val parts = mutableListOf<String>()
+    val df = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+    if (mode != null) {
+        parts.add("Mode: ${mode.name}")
+    }
+    if (fromDate != null || toDate != null) {
+        val fromText = fromDate?.let { df.format(Date(it)) } ?: "Any"
+        val toText = toDate?.let { df.format(Date(it)) } ?: "Any"
+        parts.add("Date: $fromText to $toText")
+    }
+    return if (parts.isEmpty()) "No active filters" else parts.joinToString(" | ")
 }
 
 @Composable

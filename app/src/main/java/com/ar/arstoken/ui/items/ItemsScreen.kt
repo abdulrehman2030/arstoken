@@ -22,6 +22,8 @@ fun ItemsScreen(
     var showEditDialog by remember { mutableStateOf(false) }
     var selectedItem by remember { mutableStateOf<ItemEntity?>(null) }
     var editedPrice by remember { mutableStateOf("") }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var itemToDelete by remember { mutableStateOf<ItemEntity?>(null) }
 
 
     Column(
@@ -71,26 +73,48 @@ fun ItemsScreen(
 
         Spacer(Modifier.height(16.dp))
 
-        Divider()
+        HorizontalDivider()
 
         LazyColumn {
             items(items) { item ->
-                ListItem(
-                    headlineContent = { Text(item.name) },
-                    supportingContent = { Text("₹${item.price}") },
-                    trailingContent = {
-                        TextButton(
-                            onClick = {
-                                selectedItem = item
-                                editedPrice = item.price.toString()
-                                showEditDialog = true
-                            }
-                        ) {
-                            Text("Edit")
-                        }
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                ) {
+                    ListItem(
+                        headlineContent = { Text(item.name) },
+                        supportingContent = { Text("₹${item.price}") },
+                        trailingContent = {
+                            Row {
+                                TextButton(
+                                    onClick = {
+                                        selectedItem = item
+                                        editedPrice = item.price.toString()
+                                        showEditDialog = true
+                                    }
+                                ) {
+                                    Text("Edit")
+                                }
 
-                    }
-                )
+                                TextButton(
+                                    onClick = {
+                                        itemToDelete = item
+                                        showDeleteDialog = true
+                                    },
+                                    colors = ButtonDefaults.textButtonColors(
+                                        contentColor = MaterialTheme.colorScheme.error
+                                    )
+                                ) {
+                                    Text("Delete")
+                                }
+                            }
+                        }
+                    )
+                }
             }
         }
     }
@@ -120,6 +144,37 @@ fun ItemsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showEditDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+    if (showDeleteDialog && itemToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete Item") },
+            text = { Text("Are you sure you want to delete ${itemToDelete!!.name}?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteItem(itemToDelete!!.id)
+                        showDeleteDialog = false
+                        itemToDelete = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        itemToDelete = null
+                    }
+                ) {
                     Text("Cancel")
                 }
             }

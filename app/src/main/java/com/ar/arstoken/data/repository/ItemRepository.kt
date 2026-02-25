@@ -10,4 +10,6 @@ interface ItemRepository {
     suspend fun addItem(name: String, price: Double)
 
     suspend fun updatePrice(itemId: Int, price: Double)
+
+    suspend fun deleteItem(itemId: Int)
 }
