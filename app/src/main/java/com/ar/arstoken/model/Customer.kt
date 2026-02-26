@@ -4,5 +4,5 @@ data class Customer(
     val id: Int,
     val name: String,
     val phone: String,
-    val creditBalance: Double = 0.0
+    val creditBalance: Int = 0
 )

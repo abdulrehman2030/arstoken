@@ -3,5 +3,6 @@ package com.ar.arstoken.model
 data class Item(
     val id: Int,
     val name: String,
-    val price: Double
+    val price: Int,
+    val category: String? = null
 )

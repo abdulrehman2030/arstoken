@@ -10,10 +10,13 @@ import com.ar.arstoken.data.db.AppDatabase
 import com.ar.arstoken.data.repository.*
 import com.ar.arstoken.model.Customer
 import com.ar.arstoken.ui.billing.BillingScreen
+import com.ar.arstoken.ui.categories.NewCategoryScreen
 import com.ar.arstoken.ui.customers.CustomerLedgerScreen
 import com.ar.arstoken.ui.customers.CustomersScreen
 import com.ar.arstoken.ui.items.ItemsScreen
 import com.ar.arstoken.ui.reports.ItemSalesReportScreen
+import com.ar.arstoken.ui.settings.PrintSettingsScreen
+import com.ar.arstoken.ui.settings.SettingsLandingScreen
 import com.ar.arstoken.ui.settings.SettingsScreen
 import com.ar.arstoken.ui.theme.ARSTokenTheme
 import com.ar.arstoken.viewmodel.*
@@ -23,8 +26,11 @@ enum class AdminScreen {
     REPORTS,
     CUSTOMERS,
     ITEMS,
+    CATEGORY_CREATE,
     CUSTOMER_LEDGER,
-    SETTINGS
+    SETTINGS_LANDING,
+    SETTINGS,
+    PRINT_SETTINGS
 }
 
 
@@ -67,6 +73,12 @@ class MainActivity : ComponentActivity() {
 
                 val customerRepo = remember { RoomCustomerRepository(db) }
                 val itemRepo = remember { RoomItemRepository(db) }
+                val itemViewModel = remember {
+                    ItemViewModel(itemRepo)
+                }
+                val categoryViewModel = remember {
+                    CategoryViewModel(itemRepo)
+                }
                 var selectedCustomerId by rememberSaveable { mutableStateOf<Int?>(null) }
                 var selectedCustomerName by rememberSaveable { mutableStateOf<String?>(null) }
                 var selectedCustomerPhone by rememberSaveable { mutableStateOf<String?>(null) }
@@ -103,7 +115,7 @@ class MainActivity : ComponentActivity() {
                                 currentScreen = AdminScreen.ITEMS
                             },
                             onOpenSettings = {          // 👈 ADD
-                                currentScreen = AdminScreen.SETTINGS
+                                currentScreen = AdminScreen.SETTINGS_LANDING
                             },
                             showSavedMessage = showSavedMessage,
                             onSnackbarShown = { showSavedMessage = false }
@@ -164,14 +176,26 @@ class MainActivity : ComponentActivity() {
                     }
 
                     AdminScreen.ITEMS -> {
-                        val itemViewModel = remember {
-                            ItemViewModel(itemRepo)
-                        }
-
                         ItemsScreen(
                             viewModel = itemViewModel,
+                            onAddCategory = {
+                                currentScreen = AdminScreen.CATEGORY_CREATE
+                            },
                             onBack = {
                                 currentScreen = AdminScreen.BILLING
+                            }
+                        )
+                    }
+                    AdminScreen.SETTINGS_LANDING -> {
+                        SettingsLandingScreen(
+                            onBack = {
+                                currentScreen = AdminScreen.BILLING
+                            },
+                            onOpenStoreSettings = {
+                                currentScreen = AdminScreen.SETTINGS
+                            },
+                            onOpenPrintSettings = {
+                                currentScreen = AdminScreen.PRINT_SETTINGS
                             }
                         )
                     }
@@ -180,11 +204,35 @@ class MainActivity : ComponentActivity() {
                         SettingsScreen(
                             viewModel = settingsViewModel,
                             onBack = {
-                                currentScreen = AdminScreen.BILLING
+                                currentScreen = AdminScreen.SETTINGS_LANDING
                             },
                             onSaved = {
                                 showSavedMessage = true
                                 currentScreen = AdminScreen.BILLING
+                            }
+                        )
+                    }
+                    AdminScreen.PRINT_SETTINGS -> {
+                        PrintSettingsScreen(
+                            viewModel = settingsViewModel,
+                            onBack = {
+                                currentScreen = AdminScreen.SETTINGS_LANDING
+                            },
+                            onSaved = {
+                                showSavedMessage = true
+                                currentScreen = AdminScreen.BILLING
+                            }
+                        )
+                    }
+                    AdminScreen.CATEGORY_CREATE -> {
+                        NewCategoryScreen(
+                            viewModel = categoryViewModel,
+                            onBack = {
+                                currentScreen = AdminScreen.ITEMS
+                            },
+                            onCategoryAdded = { categoryName ->
+                                itemViewModel.updateDraftCategory(categoryName)
+                                currentScreen = AdminScreen.ITEMS
                             }
                         )
                     }

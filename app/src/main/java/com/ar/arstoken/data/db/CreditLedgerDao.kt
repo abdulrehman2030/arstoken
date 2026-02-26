@@ -15,13 +15,12 @@ interface CreditLedgerDao {
         FROM credit_ledger
         WHERE customerId = :customerId
     """)
-    suspend fun getTotalDue(customerId: Int): Double?
+    suspend fun getTotalDue(customerId: Int): Int?
 
     @Query("""
     SELECT SUM(dueAmount)
     FROM credit_ledger
 """)
-    suspend fun getOverallDue(): Double?
+    suspend fun getOverallDue(): Int?
 
 }
-

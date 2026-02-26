@@ -114,7 +114,7 @@ fun CustomerLedgerScreen(
                 .padding(padding)
                 .padding(16.dp)
         ) {
-            val totalDue = ledgerRows.lastOrNull()?.second ?: 0.0
+            val totalDue = ledgerRows.lastOrNull()?.second ?: 0
 
             Row(
                 modifier = Modifier
@@ -125,7 +125,7 @@ fun CustomerLedgerScreen(
                 Button(
                     modifier = Modifier.weight(1f),
                     onClick = {
-                        if (totalDue > 0.0) {
+                        if (totalDue > 0) {
                             showPaymentDialog = true
                         } else {
                             scope.launch {
@@ -143,7 +143,7 @@ fun CustomerLedgerScreen(
                     Button(
                         modifier = Modifier.weight(1f),
                         onClick = {
-                            val totalDue = ledgerRows.lastOrNull()?.second ?: 0.0
+                            val totalDue = ledgerRows.lastOrNull()?.second ?: 0
 
                             val message = """
                                 Hi $customerName,
@@ -251,9 +251,9 @@ fun CustomerLedgerScreen(
         }
     }
     if (showPaymentDialog) {
-        val currentDue = ledgerRows.lastOrNull()?.second ?: 0.0
-        val enteredAmount = paymentAmount.toDoubleOrNull() ?: 0.0
-        val remainingDue = (currentDue - enteredAmount).coerceAtLeast(0.0)
+        val currentDue = ledgerRows.lastOrNull()?.second ?: 0
+        val enteredAmount = paymentAmount.toIntOrNull() ?: 0
+        val remainingDue = (currentDue - enteredAmount).coerceAtLeast(0)
 
         AlertDialog(
             onDismissRequest = { showPaymentDialog = false },
@@ -276,7 +276,7 @@ fun CustomerLedgerScreen(
                     Text(
                         text = "Remaining due: ₹$remainingDue",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = if (remainingDue == 0.0)
+                        color = if (remainingDue == 0)
                             MaterialTheme.colorScheme.primary
                         else
                             MaterialTheme.colorScheme.error
@@ -287,7 +287,7 @@ fun CustomerLedgerScreen(
                 TextButton(
                     enabled = enteredAmount > 0 && enteredAmount <= currentDue,
                     onClick = {
-                    val amount = paymentAmount.toDoubleOrNull()
+                    val amount = paymentAmount.toIntOrNull()
                     if (amount != null && amount > 0 && amount <= currentDue) {
                         viewModel.receivePayment(amount)
                     }
@@ -498,7 +498,7 @@ private fun buildFilterSummary(
 @Composable
 private fun LedgerRow(
     sale: SaleEntity,
-    runningBalance: Double
+    runningBalance: Int
 ) {
     val date = remember(sale.timestamp) {
         SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault())
@@ -540,9 +540,9 @@ private fun LedgerRow(
 
 private fun computeRunningBalances(
     sales: List<SaleEntity>
-): List<Pair<SaleEntity, Double>> {
+): List<Pair<SaleEntity, Int>> {
 
-    var balance = 0.0
+    var balance = 0
 
     return sales.map { sale ->
         balance += (sale.totalAmount - sale.paidAmount)

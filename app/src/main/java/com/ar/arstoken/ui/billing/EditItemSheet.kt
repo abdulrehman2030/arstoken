@@ -14,9 +14,9 @@ import com.ar.arstoken.model.Item
 @Composable
 fun EditItemSheet(
     item: Item,
-    initialQty: Double,
-    initialTotalPrice: Double,
-    onConfirm: (Double, Double) -> Unit,
+    initialQty: Int,
+    initialTotalPrice: Int,
+    onConfirm: (Int, Int) -> Unit,
     onDiscard: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -30,8 +30,8 @@ fun EditItemSheet(
     }
 
     var lastEdited by remember { mutableStateOf(EditField.NONE) }
-    val qty = quantityText.toDoubleOrNull() ?: 0.0
-    val price = priceText.toDoubleOrNull() ?: 0.0
+    val qty = quantityText.toIntOrNull() ?: 0
+    val price = priceText.toIntOrNull() ?: 0
 
     val isValid = qty > 0 && price > 0
 
@@ -39,12 +39,14 @@ fun EditItemSheet(
     LaunchedEffect(lastEdited, quantityText, priceText) {
         when (lastEdited) {
             EditField.QUANTITY -> {
-                val qty = quantityText.toDoubleOrNull() ?: return@LaunchedEffect
-                priceText = "%.2f".format(qty * unitPrice)
+                val qty = quantityText.toIntOrNull() ?: return@LaunchedEffect
+                priceText = (qty * unitPrice).toString()
             }
             EditField.PRICE -> {
-                val price = priceText.toDoubleOrNull() ?: return@LaunchedEffect
-                quantityText = "%.2f".format(price / unitPrice)
+                val price = priceText.toIntOrNull() ?: return@LaunchedEffect
+                if (unitPrice > 0) {
+                    quantityText = (price / unitPrice).toString()
+                }
             }
             else -> {}
         }
@@ -92,8 +94,8 @@ fun EditItemSheet(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        val qty = quantityText.toDoubleOrNull() ?: 0.0
-        val totalPrice = priceText.toDoubleOrNull() ?: 0.0
+        val qty = quantityText.toIntOrNull() ?: 0
+        val totalPrice = priceText.toIntOrNull() ?: 0
 
         val isValid = qty > 0 && totalPrice > 0
 

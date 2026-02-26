@@ -1,16 +1,38 @@
 package com.ar.arstoken.ui.settings
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
+import com.ar.arstoken.data.db.StoreSettingsEntity
 import com.ar.arstoken.viewmodel.SettingsViewModel
 import kotlinx.coroutines.launch
 
@@ -21,14 +43,11 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onSaved: () -> Unit
 ) {
-    val settings by viewModel.settings.collectAsState()
+    val current by viewModel.settings.collectAsState()
+    val settings = current ?: StoreSettingsEntity(storeName = "My Store", phone = "")
 
-    var storeName by remember(settings) {
-        mutableStateOf(settings?.storeName ?: "")
-    }
-    var phone by remember(settings) {
-        mutableStateOf(settings?.phone ?: "")
-    }
+    var storeName by remember(settings) { mutableStateOf(settings.storeName) }
+    var phone by remember(settings) { mutableStateOf(settings.phone) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -49,54 +68,48 @@ fun SettingsScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
-
         Column(
-            Modifier
+            modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp)
-                .padding(padding)
+                .padding(padding),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            val fieldModifier = Modifier
-                .widthIn(max = 520.dp)
-                .heightIn(min = 48.dp)
-            val actionButtonModifier = Modifier
-                .widthIn(max = 240.dp)
-                .heightIn(min = 48.dp)
-
-            Spacer(Modifier.height(8.dp))
-
             OutlinedTextField(
                 value = storeName,
                 onValueChange = { storeName = it },
                 label = { Text("Store Name") },
-                modifier = fieldModifier,
+                modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 singleLine = true
             )
-
-            Spacer(Modifier.height(12.dp))
 
             OutlinedTextField(
                 value = phone,
-                onValueChange = { phone = it },
+                onValueChange = { phone = it.filter { ch -> ch.isDigit() || ch == '+' } },
                 label = { Text("Phone Number") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                modifier = fieldModifier,
+                modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 singleLine = true
             )
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(8.dp))
 
             Button(
-                modifier = actionButtonModifier,
+                modifier = Modifier
+                    .widthIn(max = 240.dp)
+                    .height(48.dp),
                 onClick = {
-                    viewModel.save(storeName, phone)
-
+                    viewModel.save(
+                        settings.copy(
+                            storeName = storeName.trim(),
+                            phone = phone.trim()
+                        )
+                    )
                     scope.launch {
                         snackbarHostState.showSnackbar("Saved successfully")
                     }
-
                     onSaved()
                 }
             ) {

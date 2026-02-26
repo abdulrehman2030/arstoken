@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.ar.arstoken.data.db.CreditLedgerEntity
 import com.ar.arstoken.data.db.SaleEntity
 import com.ar.arstoken.data.db.SaleItemEntity
+import com.ar.arstoken.data.db.StoreSettingsEntity
 import com.ar.arstoken.data.repository.CustomerRepository
 import com.ar.arstoken.data.repository.ItemRepository
 import com.ar.arstoken.data.repository.SettingsRepository
@@ -17,7 +18,6 @@ import com.ar.arstoken.model.CartItem
 import com.ar.arstoken.model.Customer
 import com.ar.arstoken.model.Item
 import com.ar.arstoken.model.PaymentMode
-import com.ar.arstoken.util.ThermalPrinterHelper
 import com.ar.arstoken.util.formatReceipt
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
@@ -56,7 +56,8 @@ class BillingViewModel(
                 Item(
                     id = it.id,
                     name = it.name,
-                    price = it.price
+                    price = it.price,
+                    category = it.category
                 )
             }
         }
@@ -66,6 +67,18 @@ class BillingViewModel(
             emptyList()
         )
 
+    val storeSettings = settingsRepository.observe()
+        .map {
+            it ?: StoreSettingsEntity(
+                storeName = "My Store",
+                phone = ""
+            )
+        }
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            StoreSettingsEntity(storeName = "My Store", phone = "")
+        )
 
     var selectedCustomer by mutableStateOf<Customer?>(null)
         private set
@@ -73,7 +86,7 @@ class BillingViewModel(
     var paymentMode by mutableStateOf(PaymentMode.CASH)
         private set
 
-    var partialPaidAmount by mutableStateOf(0.0)
+    var partialPaidAmount by mutableStateOf(0)
         private set
 
 
@@ -98,7 +111,7 @@ class BillingViewModel(
             _cart.add(
                 CartItem(
                     item = item,
-                    qty = 1.0
+                    qty = 1
                 )
             )
         }
@@ -109,14 +122,12 @@ class BillingViewModel(
     // --------------------
     fun addItemWithCustomPrice(
         item: Item,
-        quantity: Double,
-        totalPrice: Double
+        quantity: Int,
+        totalPrice: Int
     ) {
         if (quantity <= 0 || totalPrice <= 0) return
 
         val unitPrice = totalPrice / quantity
-
-        if (unitPrice.isNaN() || unitPrice.isInfinite()) return
 
         val updatedItem = CartItem(
             item = item.copy(price = unitPrice),
@@ -132,7 +143,7 @@ class BillingViewModel(
     // --------------------
     // Total calculation
     // --------------------
-    fun getTotal(): Double {
+    fun getTotal(): Int {
         return _cart.sumOf { it.item.price * it.qty }
     }
 
@@ -141,7 +152,7 @@ class BillingViewModel(
 
         if (customer == null) {
             paymentMode = PaymentMode.CASH
-            partialPaidAmount = 0.0
+            partialPaidAmount = 0
         }
     }
 
@@ -156,7 +167,7 @@ class BillingViewModel(
         return _cart.find { it.item.id == itemId }
     }
 
-    fun getCartQuantity(itemId: Int): Double? {
+    fun getCartQuantity(itemId: Int): Int? {
         return _cart.find { it.item.id == itemId }?.qty
     }
 
@@ -167,34 +178,37 @@ class BillingViewModel(
     fun updatePaymentMode(mode: PaymentMode) {
         paymentMode = mode
         if (mode != PaymentMode.PARTIAL) {
-            partialPaidAmount = 0.0
+            partialPaidAmount = 0
         }
     }
 
     fun setPartialPaidAmount(input: String) {
-        partialPaidAmount = input.toDoubleOrNull() ?: 0.0
+        partialPaidAmount = input.toIntOrNull() ?: 0
     }
 
     // --------------------
     // Save sale (placeholder)
     // --------------------
-    fun proceedSale() {
+    fun proceedSale(
+        onReceiptReady: (String) -> Unit = {},
+        onSaleSaved: () -> Unit = {}
+    ) {
         if (cart.isEmpty()) return
 
         val total = getTotal()
-        if (total <= 0 || total.isNaN()) return
+        if (total <= 0) return
 
         val customerId = selectedCustomer?.id ?: 0
         val customerName = selectedCustomer?.name ?: "Retail"
 
         val paidAmount = when (paymentMode) {
             PaymentMode.CASH -> total
-            PaymentMode.CREDIT -> 0.0
+            PaymentMode.CREDIT -> 0
             PaymentMode.PARTIAL -> partialPaidAmount
         }
 
         if (paymentMode == PaymentMode.PARTIAL &&
-            (paidAmount <= 0.0 || paidAmount >= total)
+            (paidAmount <= 0 || paidAmount >= total)
         ) return
 
         val sale = SaleEntity(
@@ -229,7 +243,7 @@ class BillingViewModel(
             saleRepository.saveSaleItems(saleItems)
 
             // 3️⃣b SAVE LEDGER ENTRY (customer credit tracking)
-            if (customerId > 0 && sale.dueAmount > 0.0) {
+            if (customerId > 0 && sale.dueAmount > 0) {
                 saleRepository.saveCreditLedgerEntry(
                     CreditLedgerEntity(
                         customerId = customerId,
@@ -244,18 +258,28 @@ class BillingViewModel(
             }
 
             // 4️⃣ PRINT
-            val settings = settingsRepository.getOnce()
+            val settings = storeSettings.value
 
+            val printableItems = when (settings.itemOrder) {
+                "ALPHABETICAL" -> saleItems.sortedBy { it.itemName.lowercase() }
+                else -> saleItems
+            }
             val receipt = formatReceipt(
-                storeName = settings.storeName,
-                phone = settings.phone,
+                settings = settings,
                 sale = sale.copy(id = saleId.toInt()),
-                items = saleItems
+                items = printableItems
             )
 
-            ThermalPrinterHelper().printToPairedPrinter(receipt)
+            if (settings.primaryPrinterEnabled && settings.autoPrintSale) {
+                onReceiptReady(receipt)
+            }
 
             clearCart()
+            // Reset bill options for the next bill.
+            selectedCustomer = null
+            paymentMode = PaymentMode.CASH
+            partialPaidAmount = 0
+            onSaleSaved()
         }
     }
 

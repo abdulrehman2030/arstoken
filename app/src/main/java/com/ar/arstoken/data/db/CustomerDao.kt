@@ -24,7 +24,7 @@ interface CustomerDao {
     """)
     suspend fun updateBalance(
         customerId: Int,
-        amount: Double
+        amount: Int
     )
 
     // Get single customer's balance
@@ -33,7 +33,7 @@ interface CustomerDao {
         FROM customers
         WHERE id = :customerId
     """)
-    suspend fun getBalance(customerId: Int): Double?
+    suspend fun getBalance(customerId: Int): Int?
 
     @Query("""
     UPDATE customers

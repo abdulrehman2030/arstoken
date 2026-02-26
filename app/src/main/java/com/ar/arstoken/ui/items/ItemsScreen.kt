@@ -20,15 +20,18 @@ import com.ar.arstoken.viewmodel.ItemViewModel
 @Composable
 fun ItemsScreen(
     viewModel: ItemViewModel,
+    onAddCategory: () -> Unit,
     onBack: () -> Unit
 ) {
     val items by viewModel.items.collectAsState()
+    val categories by viewModel.categories.collectAsState()
 
-    var name by remember { mutableStateOf("") }
-    var price by remember { mutableStateOf("") }
+    var categoryExpanded by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var selectedItem by remember { mutableStateOf<ItemEntity?>(null) }
     var editedPrice by remember { mutableStateOf("") }
+    var editedCategory by remember { mutableStateOf<String?>(null) }
+    var editCategoryExpanded by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var itemToDelete by remember { mutableStateOf<ItemEntity?>(null) }
 
@@ -64,8 +67,8 @@ fun ItemsScreen(
         Spacer(Modifier.height(4.dp))
 
         OutlinedTextField(
-            value = name,
-            onValueChange = { name = it },
+            value = viewModel.draftItemName,
+            onValueChange = viewModel::updateDraftName,
             label = { Text("Item name") },
             modifier = fieldModifier,
             shape = RoundedCornerShape(12.dp),
@@ -75,8 +78,8 @@ fun ItemsScreen(
         Spacer(Modifier.height(8.dp))
 
         OutlinedTextField(
-            value = price,
-            onValueChange = { price = it },
+            value = viewModel.draftItemPrice,
+            onValueChange = viewModel::updateDraftPrice,
             label = { Text("Price") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             modifier = fieldModifier,
@@ -86,11 +89,60 @@ fun ItemsScreen(
 
         Spacer(Modifier.height(8.dp))
 
+        ExposedDropdownMenuBox(
+            expanded = categoryExpanded,
+            onExpandedChange = { categoryExpanded = !categoryExpanded }
+        ) {
+            OutlinedTextField(
+                value = viewModel.draftItemCategory ?: "Select Category",
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Category") },
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded)
+                },
+                modifier = fieldModifier
+                    .menuAnchor()
+                    .fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true
+            )
+
+            ExposedDropdownMenu(
+                expanded = categoryExpanded,
+                onDismissRequest = { categoryExpanded = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Add Category") },
+                    onClick = {
+                        categoryExpanded = false
+                        onAddCategory()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("No Category") },
+                    onClick = {
+                        viewModel.updateDraftCategory(null)
+                        categoryExpanded = false
+                    }
+                )
+                categories.forEach { category ->
+                    DropdownMenuItem(
+                        text = { Text(category) },
+                        onClick = {
+                            viewModel.updateDraftCategory(category)
+                            categoryExpanded = false
+                        }
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
         Button(
             onClick = {
-                viewModel.addItem(name, price.toDoubleOrNull() ?: 0.0)
-                name = ""
-                price = ""
+                viewModel.addItem()
             },
             modifier = actionButtonModifier
         ) {
@@ -113,13 +165,19 @@ fun ItemsScreen(
                     ) {
                         ListItem(
                             headlineContent = { Text(item.name) },
-                            supportingContent = { Text("₹${item.price}") },
+                            supportingContent = {
+                                Text(
+                                    "₹${item.price}" +
+                                        (item.category?.let { " • $it" } ?: "")
+                                )
+                            },
                             trailingContent = {
                                 Row {
                                     TextButton(
                                         onClick = {
                                             selectedItem = item
                                             editedPrice = item.price.toString()
+                                            editedCategory = item.category
                                             showEditDialog = true
                                         }
                                     ) {
@@ -150,22 +208,72 @@ fun ItemsScreen(
             onDismissRequest = { showEditDialog = false },
             title = { Text("Edit Price") },
             text = {
-                OutlinedTextField(
-                    value = editedPrice,
-                    onValueChange = { editedPrice = it },
-                    label = { Text("Price") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.heightIn(min = 48.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    singleLine = true
-                )
+                Column {
+                    OutlinedTextField(
+                        value = editedPrice,
+                        onValueChange = { editedPrice = it },
+                        label = { Text("Price") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.heightIn(min = 48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true
+                    )
+
+                    Spacer(Modifier.height(8.dp))
+
+                    ExposedDropdownMenuBox(
+                        expanded = editCategoryExpanded,
+                        onExpandedChange = { editCategoryExpanded = !editCategoryExpanded }
+                    ) {
+                        OutlinedTextField(
+                            value = editedCategory ?: "No Category",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Category") },
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = editCategoryExpanded)
+                            },
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true
+                        )
+
+                        ExposedDropdownMenu(
+                            expanded = editCategoryExpanded,
+                            onDismissRequest = { editCategoryExpanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("No Category") },
+                                onClick = {
+                                    editedCategory = null
+                                    editCategoryExpanded = false
+                                }
+                            )
+                            categories.forEach { category ->
+                                DropdownMenuItem(
+                                    text = { Text(category) },
+                                    onClick = {
+                                        editedCategory = category
+                                        editCategoryExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
             },
             confirmButton = {
                 TextButton(
                     onClick = {
                         viewModel.updatePrice(
                             selectedItem!!.id,
-                            editedPrice.toDoubleOrNull() ?: selectedItem!!.price
+                            editedPrice.toIntOrNull() ?: selectedItem!!.price
+                        )
+                        viewModel.assignCategory(
+                            selectedItem!!.id,
+                            editedCategory
                         )
                         showEditDialog = false
                     }

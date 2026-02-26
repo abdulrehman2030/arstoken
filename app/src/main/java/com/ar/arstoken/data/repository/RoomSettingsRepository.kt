@@ -10,14 +10,10 @@ class RoomSettingsRepository(
 
     override fun observe() = dao.observeSettings()
 
-    override suspend fun save(name: String, phone: String) {
-        dao.save(
-            StoreSettingsEntity(
-                storeName = name,
-                phone = phone
-            )
-        )
+    override suspend fun save(settings: StoreSettingsEntity) {
+        dao.save(settings.copy(id = 1))
     }
+
     override suspend fun getOnce(): StoreSettingsEntity {
         return dao.observeSettings().first()
             ?: StoreSettingsEntity(

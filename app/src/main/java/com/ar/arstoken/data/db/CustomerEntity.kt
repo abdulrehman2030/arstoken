@@ -9,5 +9,5 @@ data class CustomerEntity(
     val id: Int = 0,
     val name: String,
     val phone: String,
-    val creditBalance: Double = 0.0
+    val creditBalance: Int = 0
 )

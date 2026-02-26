@@ -14,9 +14,9 @@ data class SaleEntity(
 
     val saleType: String,
 
-    val totalAmount: Double,
-    val paidAmount: Double,
-    val dueAmount: Double,
+    val totalAmount: Int,
+    val paidAmount: Int,
+    val dueAmount: Int,
 
     val synced: Boolean = false   // 🔑 cloud-ready
 )

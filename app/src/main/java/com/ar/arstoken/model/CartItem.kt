@@ -2,5 +2,5 @@ package com.ar.arstoken.model
 
 data class CartItem(
     val item: Item,
-    val qty: Double
+    val qty: Int
 )

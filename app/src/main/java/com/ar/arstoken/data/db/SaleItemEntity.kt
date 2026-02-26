@@ -23,10 +23,9 @@ data class SaleItemEntity(
     val saleId: Int,
     val itemId: Int,
     val itemName: String,
-    val quantity: Double,
-    val unitPrice: Double,
-    val totalPrice: Double,
+    val quantity: Int,
+    val unitPrice: Int,
+    val totalPrice: Int,
     val timestamp: Long
 )
-
 

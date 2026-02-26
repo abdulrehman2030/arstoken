@@ -19,10 +19,10 @@ class RoomReportRepository(
         to: Long
     ): ReportSummary {
 
-        val totalSales = saleDao.getTotalSales(from, to) ?: 0.0
-        val totalCash = saleDao.getTotalCash(from, to) ?: 0.0
-        val totalCredit = saleDao.getTotalCredit(from, to) ?: 0.0
-        val totalDue = ledgerDao.getOverallDue() ?: 0.0
+        val totalSales = saleDao.getTotalSales(from, to) ?: 0
+        val totalCash = saleDao.getTotalCash(from, to) ?: 0
+        val totalCredit = saleDao.getTotalCredit(from, to) ?: 0
+        val totalDue = ledgerDao.getOverallDue() ?: 0
 
         return ReportSummary(
             totalSales = totalSales,

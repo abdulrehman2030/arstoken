@@ -29,7 +29,7 @@ interface SaleDao {
     FROM sales
     WHERE timestamp BETWEEN :from AND :to
 """)
-    suspend fun getTotalSales(from: Long, to: Long): Double?
+    suspend fun getTotalSales(from: Long, to: Long): Int?
 
     @Query("""
     SELECT 
@@ -38,7 +38,7 @@ interface SaleDao {
     WHERE saleType = 'CASH'
     AND timestamp BETWEEN :from AND :to
 """)
-    suspend fun getTotalCash(from: Long, to: Long): Double?
+    suspend fun getTotalCash(from: Long, to: Long): Int?
 
     @Query("""
     SELECT 
@@ -47,7 +47,7 @@ interface SaleDao {
     WHERE saleType IN ('CREDIT','PARTIAL')
     AND timestamp BETWEEN :from AND :to
 """)
-    suspend fun getTotalCredit(from: Long, to: Long): Double?
+    suspend fun getTotalCredit(from: Long, to: Long): Int?
 
     @Insert
     suspend fun insert(sale: SaleEntity): Long

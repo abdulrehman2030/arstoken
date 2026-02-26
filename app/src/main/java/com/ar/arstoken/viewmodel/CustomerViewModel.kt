@@ -36,7 +36,7 @@ class CustomerViewModel(
                 id = customer.id,
                 name = customer.name,
                 phone = customer.phone,
-                creditBalance = dueMap[customer.id] ?: 0.0
+                creditBalance = dueMap[customer.id] ?: 0
             )
         }
     }.stateIn(

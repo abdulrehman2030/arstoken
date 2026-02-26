@@ -22,16 +22,16 @@ import com.ar.arstoken.model.PaymentMode
 fun MoreOptionsSheet(
     customers: List<Customer>,
     selectedCustomer: Customer?,
-    total: Double,
+    total: Int,
     paymentMode: PaymentMode,
-    partialPaidAmount: Double,
+    partialPaidAmount: Int,
     onPartialAmountChange: (String) -> Unit,
     onCustomerSelected: (Customer?) -> Unit,
     onPaymentModeChange: (PaymentMode) -> Unit,
     onSummary: () -> Unit
 ) {
     val isPartialValid = paymentMode != PaymentMode.PARTIAL ||
-        (partialPaidAmount > 0.0 && partialPaidAmount < total)
+        (partialPaidAmount > 0 && partialPaidAmount < total)
 
     Column(
         modifier = Modifier
@@ -114,7 +114,7 @@ fun MoreOptionsSheet(
         if (paymentMode == PaymentMode.PARTIAL) {
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
-                value = if (partialPaidAmount == 0.0) "" else partialPaidAmount.toString(),
+                value = if (partialPaidAmount == 0) "" else partialPaidAmount.toString(),
                 onValueChange = onPartialAmountChange,
                 label = { Text("Paid Amount") },
                 keyboardOptions = KeyboardOptions(
@@ -133,6 +133,8 @@ fun MoreOptionsSheet(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
+
+        Spacer(modifier = Modifier.height(12.dp))
 
         Button(
             onClick = onSummary,

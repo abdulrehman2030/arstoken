@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface SettingsRepository {
     fun observe(): Flow<StoreSettingsEntity?>
-    suspend fun save(name: String, phone: String)
+    suspend fun save(settings: StoreSettingsEntity)
     suspend fun getOnce(): StoreSettingsEntity
 
 }

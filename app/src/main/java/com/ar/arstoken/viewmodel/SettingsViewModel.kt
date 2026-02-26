@@ -2,6 +2,7 @@ package com.ar.arstoken.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ar.arstoken.data.db.StoreSettingsEntity
 import com.ar.arstoken.data.repository.SettingsRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
@@ -18,9 +19,9 @@ class SettingsViewModel(
             null
         )
 
-    fun save(name: String, phone: String) {
+    fun save(settings: StoreSettingsEntity) {
         viewModelScope.launch {
-            repo.save(name, phone)
+            repo.save(settings)
         }
     }
 }

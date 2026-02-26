@@ -14,12 +14,21 @@ interface ItemDao {
     @Insert
     suspend fun insert(item: ItemEntity)
 
+    @Query(
+        """
+        UPDATE items
+        SET category = :category
+        WHERE id = :itemId
+        """
+    )
+    suspend fun updateCategory(itemId: Int, category: String?)
+
     @Query("""
         UPDATE items
         SET price = :price
         WHERE id = :itemId
     """)
-    suspend fun updatePrice(itemId: Int, price: Double)
+    suspend fun updatePrice(itemId: Int, price: Int)
 
     @Query("""
         UPDATE items

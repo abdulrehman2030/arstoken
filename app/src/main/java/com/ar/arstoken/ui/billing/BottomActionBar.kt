@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun BottomActionBar(
-    total: Double,
+    total: Int,
     onProceed: () -> Unit,
     onMore: () -> Unit
 ) {
@@ -42,7 +42,7 @@ fun BottomActionBar(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "₹ %.2f".format(total),
+                    text = "₹ $total",
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleLarge
                 )

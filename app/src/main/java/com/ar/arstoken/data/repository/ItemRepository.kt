@@ -7,9 +7,15 @@ interface ItemRepository {
 
     fun getItems(): Flow<List<ItemEntity>>
 
-    suspend fun addItem(name: String, price: Double)
+    fun getCategories(): Flow<List<String>>
 
-    suspend fun updatePrice(itemId: Int, price: Double)
+    suspend fun addItem(name: String, price: Int, category: String?)
+
+    suspend fun addCategory(name: String)
+
+    suspend fun assignCategory(itemId: Int, category: String?)
+
+    suspend fun updatePrice(itemId: Int, price: Int)
 
     suspend fun deleteItem(itemId: Int)
 }

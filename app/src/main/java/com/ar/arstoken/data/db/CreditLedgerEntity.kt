@@ -14,9 +14,9 @@ data class CreditLedgerEntity(
 
     val timestamp: Long,
 
-    val totalAmount: Double,
-    val paidAmount: Double,
-    val dueAmount: Double,
+    val totalAmount: Int,
+    val paidAmount: Int,
+    val dueAmount: Int,
 
     val synced: Boolean = false   // 🔑 cloud-ready
 )
