@@ -8,6 +8,7 @@ import java.util.*
 
 fun formatReceipt(
     settings: StoreSettingsEntity,
+    businessNameOverride: String?,
     sale: SaleEntity,
     items: List<SaleItemEntity>
 ): String {
@@ -44,11 +45,14 @@ fun formatReceipt(
     val sb = StringBuilder()
 
     // Header
-    val normalizedName = settings.storeName.ifBlank { "ARS TOKEN" }.uppercase()
+    val normalizedName = businessNameOverride
+        ?.takeIf { it.isNotBlank() }
+        ?: settings.storeName.ifBlank { "ARS TOKEN" }
+    val headerName = normalizedName.uppercase()
     val storeHeading = when (settings.businessNameSize) {
-        "LARGE" -> "{C}{B}{W2}$normalizedName{/B}"
-        "SMALL" -> "{C}$normalizedName"
-        else -> "{C}{B}$normalizedName{/B}"
+        "LARGE" -> "{C}{B}{W2}$headerName{/B}"
+        "SMALL" -> "{C}$headerName"
+        else -> "{C}{B}$headerName{/B}"
     }
     sb.appendLine(storeHeading)
     if (settings.phone.isNotBlank()) {

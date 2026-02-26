@@ -10,14 +10,20 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
@@ -26,8 +32,12 @@ import androidx.compose.ui.unit.dp
 fun SettingsLandingScreen(
     onBack: () -> Unit,
     onOpenStoreSettings: () -> Unit,
-    onOpenPrintSettings: () -> Unit
+    onOpenPrintSettings: () -> Unit,
+    onOpenBusinessProfile: () -> Unit,
+    onSignOut: () -> Unit
 ) {
+    var showSignOutDialog by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -57,11 +67,44 @@ fun SettingsLandingScreen(
             )
 
             SettingsCard(
+                title = "Business Profile",
+                subtitle = "Business name and logo",
+                onClick = onOpenBusinessProfile
+            )
+
+            SettingsCard(
                 title = "Print Settings",
                 subtitle = "Receipt format and printer behavior",
                 onClick = onOpenPrintSettings
             )
+
+            SettingsCard(
+                title = "Sign Out",
+                subtitle = "Log out of this device",
+                onClick = { showSignOutDialog = true }
+            )
         }
+    }
+
+    if (showSignOutDialog) {
+        AlertDialog(
+            onDismissRequest = { showSignOutDialog = false },
+            title = { Text("Sign out?") },
+            text = { Text("You will need to verify your phone again to log in.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showSignOutDialog = false
+                    onSignOut()
+                }) {
+                    Text("Sign out")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSignOutDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 

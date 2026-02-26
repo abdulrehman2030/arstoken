@@ -190,6 +190,7 @@ class BillingViewModel(
     // Save sale (placeholder)
     // --------------------
     fun proceedSale(
+        businessNameOverride: String? = null,
         onReceiptReady: (String) -> Unit = {},
         onSaleSaved: () -> Unit = {}
     ) {
@@ -266,6 +267,7 @@ class BillingViewModel(
             }
             val receipt = formatReceipt(
                 settings = settings,
+                businessNameOverride = businessNameOverride,
                 sale = sale.copy(id = saleId.toInt()),
                 items = printableItems
             )

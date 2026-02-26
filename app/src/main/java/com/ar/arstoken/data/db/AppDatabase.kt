@@ -15,9 +15,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         CreditLedgerEntity::class,
         ItemEntity::class,
         CategoryEntity::class,
-        StoreSettingsEntity::class
+        StoreSettingsEntity::class,
+        BusinessProfileEntity::class
     ],
-    version = 7
+    version = 8
 )
 abstract class AppDatabase : RoomDatabase() {
 
@@ -28,6 +29,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun categoryDao(): CategoryDao
     abstract fun saleItemDao(): SaleItemDao
     abstract fun storeSettingsDao(): StoreSettingsDao
+    abstract fun businessProfileDao(): BusinessProfileDao
 
 
     companion object {
@@ -227,6 +229,23 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `business_profile` (
+                        `id` INTEGER NOT NULL,
+                        `businessName` TEXT NOT NULL,
+                        `logoUrl` TEXT,
+                        `phone` TEXT,
+                        `updatedAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
         fun get(context: Context): AppDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -234,7 +253,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "arstoken.db"
                 )
-                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                     .build()
                     .also { INSTANCE = it }
             }

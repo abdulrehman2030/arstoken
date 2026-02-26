@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import coil.compose.AsyncImage
 import com.ar.arstoken.model.Item
 import com.ar.arstoken.util.ThermalPrinterHelper
 import com.ar.arstoken.viewmodel.BillingViewModel
@@ -34,6 +35,8 @@ import kotlinx.coroutines.withContext
 @Composable
 fun BillingScreen(
     viewModel: BillingViewModel,
+    businessName: String,
+    logoUrl: String?,
     onOpenReports: () -> Unit,
     onOpenCustomers: () -> Unit,
     onOpenItems: () -> Unit,
@@ -143,11 +146,25 @@ fun BillingScreen(
                         )
                     }
 
-                    Text(
-                        "Admin",
+                    Row(
                         modifier = Modifier.align(Alignment.Center),
-                        style = MaterialTheme.typography.titleMedium
-                    )
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (!logoUrl.isNullOrBlank()) {
+                            AsyncImage(
+                                model = logoUrl,
+                                contentDescription = "Logo",
+                                modifier = Modifier
+                                    .height(28.dp)
+                                    .width(28.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                        }
+                        Text(
+                            businessName,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
                 }
 
                 NavigationDrawerItem(
@@ -196,9 +213,23 @@ fun BillingScreen(
                 TopAppBar(
                     title = {
                         Column {
-                            Text(
-                                storeSettings.storeName.ifBlank { "ARS Token" }
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (!logoUrl.isNullOrBlank()) {
+                                    AsyncImage(
+                                        model = logoUrl,
+                                        contentDescription = "Logo",
+                                        modifier = Modifier
+                                            .height(24.dp)
+                                            .width(24.dp)
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                }
+                                Text(
+                                    businessName.ifBlank {
+                                        storeSettings.storeName.ifBlank { "ARS Token" }
+                                    }
+                                )
+                            }
                             Text(
                                 "Tap to add • Long press to edit",
                                 style = MaterialTheme.typography.labelSmall,
@@ -225,6 +256,7 @@ fun BillingScreen(
                     onProceed = {
                         if (viewModel.cart.isNotEmpty()) {
                             viewModel.proceedSale(
+                                businessNameOverride = businessName,
                                 onReceiptReady = { receipt ->
                                     if (hasBtConnectPermission) {
                                         scope.launch {
