@@ -22,7 +22,6 @@ import com.ar.arstoken.ui.reports.BillDetailScreen
 import com.ar.arstoken.ui.settings.BusinessProfileScreen
 import com.ar.arstoken.ui.settings.PrintSettingsScreen
 import com.ar.arstoken.ui.settings.SettingsLandingScreen
-import com.ar.arstoken.ui.settings.SettingsScreen
 import com.ar.arstoken.ui.theme.ARSTokenTheme
 import com.ar.arstoken.viewmodel.*
 import com.ar.arstoken.viewmodel.BillDetailViewModel
@@ -43,7 +42,6 @@ enum class AdminScreen {
     CATEGORY_CREATE,
     CUSTOMER_LEDGER,
     SETTINGS_LANDING,
-    SETTINGS,
     PRINT_SETTINGS,
     BUSINESS_PROFILE,
     BILL_DETAIL
@@ -321,9 +319,6 @@ class MainActivity : ComponentActivity() {
                             onBack = {
                                 currentScreen = AdminScreen.BILLING
                             },
-                            onOpenStoreSettings = {
-                                currentScreen = AdminScreen.SETTINGS
-                            },
                             onOpenBusinessProfile = {
                                 currentScreen = AdminScreen.BUSINESS_PROFILE
                             },
@@ -353,19 +348,6 @@ class MainActivity : ComponentActivity() {
                                         syncMinute = minute
                                     )
                                 )
-                            }
-                        )
-                    }
-                    AdminScreen.SETTINGS -> {
-
-                        SettingsScreen(
-                            viewModel = settingsViewModel,
-                            onBack = {
-                                currentScreen = AdminScreen.SETTINGS_LANDING
-                            },
-                            onSaved = {
-                                showSavedMessage = true
-                                currentScreen = AdminScreen.BILLING
                             }
                         )
                     }

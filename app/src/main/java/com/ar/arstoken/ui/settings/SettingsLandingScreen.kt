@@ -37,7 +37,6 @@ import androidx.activity.compose.BackHandler
 @Composable
 fun SettingsLandingScreen(
     onBack: () -> Unit,
-    onOpenStoreSettings: () -> Unit,
     onOpenPrintSettings: () -> Unit,
     onOpenBusinessProfile: () -> Unit,
     onSignOut: () -> Unit,
@@ -46,6 +45,7 @@ fun SettingsLandingScreen(
     onSaveSyncTime: (hour: Int, minute: Int) -> Unit
 ) {
     var showSignOutDialog by remember { mutableStateOf(false) }
+    var showBackupDialog by remember { mutableStateOf(false) }
     var showSyncDialog by remember { mutableStateOf(false) }
     val current = settings ?: StoreSettingsEntity(storeName = "My Store", phone = "")
     var hourInput by remember(current) { mutableStateOf(current.syncHour.toString()) }
@@ -75,12 +75,6 @@ fun SettingsLandingScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             SettingsCard(
-                title = "Store Settings",
-                subtitle = "Store name and phone number",
-                onClick = onOpenStoreSettings
-            )
-
-            SettingsCard(
                 title = "Business Profile",
                 subtitle = "Business name and phone",
                 onClick = onOpenBusinessProfile
@@ -93,15 +87,9 @@ fun SettingsLandingScreen(
             )
 
             SettingsCard(
-                title = "Sync Now",
-                subtitle = "Upload & download latest data",
-                onClick = onSyncNow
-            )
-
-            SettingsCard(
-                title = "Sync Schedule",
-                subtitle = "Daily at $syncLabel",
-                onClick = { showSyncDialog = true }
+                title = "Backup Settings",
+                subtitle = "Sync now or schedule daily at $syncLabel",
+                onClick = { showBackupDialog = true }
             )
 
             SettingsCard(
@@ -128,6 +116,30 @@ fun SettingsLandingScreen(
             dismissButton = {
                 TextButton(onClick = { showSignOutDialog = false }) {
                     Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showBackupDialog) {
+        AlertDialog(
+            onDismissRequest = { showBackupDialog = false },
+            title = { Text("Backup Settings") },
+            text = { Text("Choose to sync now or change the daily backup time.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showBackupDialog = false
+                    onSyncNow()
+                }) {
+                    Text("Sync now")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showBackupDialog = false
+                    showSyncDialog = true
+                }) {
+                    Text("Change time")
                 }
             }
         )
