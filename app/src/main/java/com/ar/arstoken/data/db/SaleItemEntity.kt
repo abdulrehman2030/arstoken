@@ -20,12 +20,15 @@ import androidx.room.PrimaryKey
 data class SaleItemEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
+    val cloudId: String = "",
     val saleId: Int,
+    val saleCloudId: String = "",
     val itemId: Int,
+    val itemCloudId: String = "",
     val itemName: String,
     val quantity: Int,
     val unitPrice: Int,
     val totalPrice: Int,
-    val timestamp: Long
+    val timestamp: Long,
+    val updatedAt: Long = 0
 )
-

@@ -33,6 +33,7 @@ import com.ar.arstoken.model.SaleType
 import com.ar.arstoken.util.salesToCsv
 import com.ar.arstoken.util.shareText
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.activity.compose.BackHandler
 import kotlinx.coroutines.launch
 
 
@@ -250,6 +251,7 @@ fun CustomerLedgerScreen(
             }
         }
     }
+    BackHandler { onBack() }
     if (showPaymentDialog) {
         val currentDue = ledgerRows.lastOrNull()?.second ?: 0
         val enteredAmount = paymentAmount.toIntOrNull() ?: 0

@@ -23,5 +23,9 @@ data class StoreSettingsEntity(
     val printerSpacingFix: Boolean = false,
     val bottomPaddingLines: Int = 1,
     val printItemMultiLine: Boolean = true,
-    val itemOrder: String = "INSERTED"
+    val itemOrder: String = "INSERTED",
+    val syncEnabled: Boolean = true,
+    val syncHour: Int = 22,
+    val syncMinute: Int = 0,
+    val updatedAt: Long = 0
 )

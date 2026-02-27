@@ -2,7 +2,7 @@ package com.ar.arstoken.data.repository
 
 import com.ar.arstoken.data.ReportRepository
 import com.ar.arstoken.data.db.AppDatabase
-import com.ar.arstoken.data.db.ItemSalesRow
+import com.ar.arstoken.data.db.SaleEntity
 import com.ar.arstoken.model.ReportSummary
 import kotlinx.coroutines.flow.Flow
 
@@ -12,7 +12,6 @@ class RoomReportRepository(
 
     private val saleDao = db.saleDao()
     private val ledgerDao = db.creditLedgerDao()
-    private val saleItemDao = db.saleItemDao()
 
     suspend fun getReport(
         from: Long,
@@ -32,10 +31,10 @@ class RoomReportRepository(
         )
     }
 
-    override fun getItemSales(
+    override fun getSales(
         from: Long,
         to: Long
-    ): Flow<List<ItemSalesRow>> {
-        return saleItemDao.getItemSales(from, to)
+    ): Flow<List<SaleEntity>> {
+        return saleDao.getSalesBetween(from, to)
     }
 }

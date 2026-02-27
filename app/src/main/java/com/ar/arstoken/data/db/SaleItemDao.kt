@@ -28,4 +28,54 @@ interface SaleItemDao {
 
     @Insert
     suspend fun insertAll(items: List<SaleItemEntity>)
+
+    @Query("""
+        SELECT *
+        FROM sale_items
+        WHERE saleId = :saleId
+        ORDER BY id ASC
+    """)
+    fun getItemsForSale(saleId: Int): Flow<List<SaleItemEntity>>
+
+    @Query("SELECT * FROM sale_items")
+    suspend fun getAllOnce(): List<SaleItemEntity>
+
+    @Query("SELECT * FROM sale_items WHERE cloudId = :cloudId LIMIT 1")
+    suspend fun findByCloudId(cloudId: String): SaleItemEntity?
+
+    @Query("""
+        UPDATE sale_items
+        SET saleId = :saleId,
+            saleCloudId = :saleCloudId,
+            itemId = :itemId,
+            itemCloudId = :itemCloudId,
+            itemName = :itemName,
+            quantity = :quantity,
+            unitPrice = :unitPrice,
+            totalPrice = :totalPrice,
+            timestamp = :timestamp,
+            updatedAt = :updatedAt
+        WHERE id = :id
+    """)
+    suspend fun updateFromCloud(
+        id: Int,
+        saleId: Int,
+        saleCloudId: String,
+        itemId: Int,
+        itemCloudId: String,
+        itemName: String,
+        quantity: Int,
+        unitPrice: Int,
+        totalPrice: Int,
+        timestamp: Long,
+        updatedAt: Long
+    )
+
+    @Query("""
+        UPDATE sale_items
+        SET cloudId = :cloudId,
+            updatedAt = :updatedAt
+        WHERE id = :id
+    """)
+    suspend fun updateCloudId(id: Int, cloudId: String, updatedAt: Long)
 }

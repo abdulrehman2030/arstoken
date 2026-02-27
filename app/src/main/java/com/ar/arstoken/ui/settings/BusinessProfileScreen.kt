@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ar.arstoken.viewmodel.BusinessProfileViewModel
+import androidx.activity.compose.BackHandler
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -131,6 +132,10 @@ fun BusinessProfileScreen(
                 )
             }
         }
+    }
+
+    BackHandler {
+        onBack()
     }
 
 }

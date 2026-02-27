@@ -10,7 +10,8 @@ fun formatReceipt(
     settings: StoreSettingsEntity,
     businessNameOverride: String?,
     sale: SaleEntity,
-    items: List<SaleItemEntity>
+    items: List<SaleItemEntity>,
+    headerNote: String? = null
 ): String {
     val paperWidth = settings.charactersPerLine.coerceIn(24, 64)
     val date = SimpleDateFormat("dd/MM/yy hh:mm a", Locale.getDefault())
@@ -55,6 +56,9 @@ fun formatReceipt(
         else -> "{C}{B}$headerName{/B}"
     }
     sb.appendLine(storeHeading)
+    if (!headerNote.isNullOrBlank()) {
+        sb.appendLine("{C}{B}$headerNote{/B}")
+    }
     if (settings.phone.isNotBlank()) {
         sb.appendLine("{C}Phone: ${settings.phone}")
     }

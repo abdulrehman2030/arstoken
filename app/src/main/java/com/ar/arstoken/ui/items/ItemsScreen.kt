@@ -15,6 +15,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import com.ar.arstoken.data.db.ItemEntity
 import com.ar.arstoken.viewmodel.ItemViewModel
+import androidx.activity.compose.BackHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -203,6 +204,7 @@ fun ItemsScreen(
             }
         }
     }
+    BackHandler { onBack() }
     if (showEditDialog && selectedItem != null) {
         AlertDialog(
             onDismissRequest = { showEditDialog = false },

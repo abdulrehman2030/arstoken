@@ -19,6 +19,8 @@ import com.ar.arstoken.model.Customer
 import com.ar.arstoken.model.Item
 import com.ar.arstoken.model.PaymentMode
 import com.ar.arstoken.util.formatReceipt
+import com.ar.arstoken.util.newCloudId
+import com.ar.arstoken.util.nowMs
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -37,6 +39,7 @@ class BillingViewModel(
             entities.map {
                 Customer(
                     id = it.id,
+                    cloudId = it.cloudId,
                     name = it.name,
                     phone = it.phone,
                     creditBalance = it.creditBalance
@@ -55,6 +58,7 @@ class BillingViewModel(
             entityList.map {
                 Item(
                     id = it.id,
+                    cloudId = it.cloudId,
                     name = it.name,
                     price = it.price,
                     category = it.category
@@ -212,14 +216,19 @@ class BillingViewModel(
             (paidAmount <= 0 || paidAmount >= total)
         ) return
 
+        val saleCloudId = newCloudId()
+        val now = nowMs()
         val sale = SaleEntity(
+            cloudId = saleCloudId,
             timestamp = System.currentTimeMillis(),
             customerId = customerId,
+            customerCloudId = selectedCustomer?.cloudId,
             customerName = customerName,
             saleType = paymentMode.name,
             totalAmount = total,
             paidAmount = paidAmount,
-            dueAmount = total - paidAmount
+            dueAmount = total - paidAmount,
+            updatedAt = now
         )
 
         viewModelScope.launch {
@@ -230,13 +239,17 @@ class BillingViewModel(
             // 2️⃣ MAP CART → SALE ITEMS
             val saleItems = cart.map { cartItem ->
                 SaleItemEntity(
+                    cloudId = newCloudId(),
                     saleId = saleId.toInt(),
+                    saleCloudId = saleCloudId,
                     itemId = cartItem.item.id,
+                    itemCloudId = cartItem.item.cloudId,
                     itemName = cartItem.item.name,
                     quantity = cartItem.qty,
                     unitPrice = cartItem.item.price,
                     totalPrice = cartItem.qty * cartItem.item.price,
-                    timestamp = System.currentTimeMillis()
+                    timestamp = System.currentTimeMillis(),
+                    updatedAt = now
                 )
             }
 
@@ -247,13 +260,17 @@ class BillingViewModel(
             if (customerId > 0 && sale.dueAmount > 0) {
                 saleRepository.saveCreditLedgerEntry(
                     CreditLedgerEntity(
+                        cloudId = newCloudId(),
                         customerId = customerId,
+                        customerCloudId = selectedCustomer?.cloudId,
                         customerName = customerName,
                         saleId = saleId.toString(),
+                        saleCloudId = saleCloudId,
                         timestamp = sale.timestamp,
                         totalAmount = sale.totalAmount,
                         paidAmount = sale.paidAmount,
-                        dueAmount = sale.dueAmount
+                        dueAmount = sale.dueAmount,
+                        updatedAt = now
                     )
                 )
             }

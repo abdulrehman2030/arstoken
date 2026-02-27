@@ -6,6 +6,8 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "categories")
 data class CategoryEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val cloudId: String = "",
     val name: String,
-    val isActive: Boolean = true
+    val isActive: Boolean = true,
+    val updatedAt: Long = 0
 )

@@ -34,6 +34,7 @@ class CustomerViewModel(
         customers.map { customer ->
             Customer(
                 id = customer.id,
+                cloudId = customer.cloudId,
                 name = customer.name,
                 phone = customer.phone,
                 creditBalance = dueMap[customer.id] ?: 0

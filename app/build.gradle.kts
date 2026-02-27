@@ -102,4 +102,7 @@ dependencies {
     // Image loading
     implementation(libs.coil.compose)
 
+    // Coroutines for Firebase Tasks
+    implementation(libs.coroutines.play.services)
+
 }

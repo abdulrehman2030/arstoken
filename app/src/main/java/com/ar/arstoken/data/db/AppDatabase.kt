@@ -18,7 +18,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         StoreSettingsEntity::class,
         BusinessProfileEntity::class
     ],
-    version = 8
+    version = 10
 )
 abstract class AppDatabase : RoomDatabase() {
 
@@ -246,6 +246,57 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // customers
+                db.execSQL("ALTER TABLE customers ADD COLUMN cloudId TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE customers ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("UPDATE customers SET updatedAt = strftime('%s','now') * 1000 WHERE updatedAt = 0")
+
+                // items
+                db.execSQL("ALTER TABLE items ADD COLUMN cloudId TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE items ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("UPDATE items SET updatedAt = strftime('%s','now') * 1000 WHERE updatedAt = 0")
+
+                // categories
+                db.execSQL("ALTER TABLE categories ADD COLUMN cloudId TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE categories ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("UPDATE categories SET updatedAt = strftime('%s','now') * 1000 WHERE updatedAt = 0")
+
+                // sales
+                db.execSQL("ALTER TABLE sales ADD COLUMN cloudId TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE sales ADD COLUMN customerCloudId TEXT")
+                db.execSQL("ALTER TABLE sales ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("UPDATE sales SET updatedAt = strftime('%s','now') * 1000 WHERE updatedAt = 0")
+
+                // sale_items
+                db.execSQL("ALTER TABLE sale_items ADD COLUMN cloudId TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE sale_items ADD COLUMN saleCloudId TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE sale_items ADD COLUMN itemCloudId TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE sale_items ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("UPDATE sale_items SET updatedAt = strftime('%s','now') * 1000 WHERE updatedAt = 0")
+
+                // credit_ledger
+                db.execSQL("ALTER TABLE credit_ledger ADD COLUMN cloudId TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE credit_ledger ADD COLUMN customerCloudId TEXT")
+                db.execSQL("ALTER TABLE credit_ledger ADD COLUMN saleCloudId TEXT")
+                db.execSQL("ALTER TABLE credit_ledger ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("UPDATE credit_ledger SET updatedAt = strftime('%s','now') * 1000 WHERE updatedAt = 0")
+
+                // store_settings
+                db.execSQL("ALTER TABLE store_settings ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("UPDATE store_settings SET updatedAt = strftime('%s','now') * 1000 WHERE updatedAt = 0")
+            }
+        }
+
+        private val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE store_settings ADD COLUMN syncEnabled INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE store_settings ADD COLUMN syncHour INTEGER NOT NULL DEFAULT 22")
+                db.execSQL("ALTER TABLE store_settings ADD COLUMN syncMinute INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         fun get(context: Context): AppDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -253,7 +304,15 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "arstoken.db"
                 )
-                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                    .addMigrations(
+                        MIGRATION_3_4,
+                        MIGRATION_4_5,
+                        MIGRATION_5_6,
+                        MIGRATION_6_7,
+                        MIGRATION_7_8,
+                        MIGRATION_8_9,
+                        MIGRATION_9_10
+                    )
                     .build()
                     .also { INSTANCE = it }
             }

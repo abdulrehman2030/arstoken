@@ -7,9 +7,11 @@ import androidx.room.PrimaryKey
 data class SaleEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
+    val cloudId: String = "",
     val timestamp: Long,
 
     val customerId: Int?,
+    val customerCloudId: String? = null,
     val customerName: String?,
 
     val saleType: String,
@@ -18,5 +20,6 @@ data class SaleEntity(
     val paidAmount: Int,
     val dueAmount: Int,
 
-    val synced: Boolean = false   // 🔑 cloud-ready
+    val synced: Boolean = false,   // 🔑 cloud-ready
+    val updatedAt: Long = 0
 )

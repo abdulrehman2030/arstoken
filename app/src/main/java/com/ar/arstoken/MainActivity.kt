@@ -6,7 +6,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.rememberCoroutineScope
 import com.ar.arstoken.data.db.AppDatabase
+import com.ar.arstoken.data.db.StoreSettingsEntity
 import com.ar.arstoken.data.repository.*
 import com.ar.arstoken.model.Customer
 import com.ar.arstoken.ui.auth.PhoneLoginScreen
@@ -16,15 +18,22 @@ import com.ar.arstoken.ui.customers.CustomerLedgerScreen
 import com.ar.arstoken.ui.customers.CustomersScreen
 import com.ar.arstoken.ui.items.ItemsScreen
 import com.ar.arstoken.ui.reports.ItemSalesReportScreen
+import com.ar.arstoken.ui.reports.BillDetailScreen
 import com.ar.arstoken.ui.settings.BusinessProfileScreen
 import com.ar.arstoken.ui.settings.PrintSettingsScreen
 import com.ar.arstoken.ui.settings.SettingsLandingScreen
 import com.ar.arstoken.ui.settings.SettingsScreen
 import com.ar.arstoken.ui.theme.ARSTokenTheme
 import com.ar.arstoken.viewmodel.*
+import com.ar.arstoken.viewmodel.BillDetailViewModel
+import com.ar.arstoken.data.sync.CloudSyncManager
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import java.util.Calendar
 
 enum class AdminScreen {
     BILLING,
@@ -36,7 +45,8 @@ enum class AdminScreen {
     SETTINGS_LANDING,
     SETTINGS,
     PRINT_SETTINGS,
-    BUSINESS_PROFILE
+    BUSINESS_PROFILE,
+    BILL_DETAIL
 }
 
 
@@ -87,6 +97,7 @@ class MainActivity : ComponentActivity() {
                 val settingsViewModel = remember {
                     SettingsViewModel(settingsRepo)
                 }
+                val settingsState by settingsViewModel.settings.collectAsState()
 
                 // ----------------------------
                 // Repositories (single instance)
@@ -103,6 +114,7 @@ class MainActivity : ComponentActivity() {
                     CategoryViewModel(itemRepo)
                 }
                 var selectedCustomerId by rememberSaveable { mutableStateOf<Int?>(null) }
+                var selectedCustomerCloudId by rememberSaveable { mutableStateOf<String?>(null) }
                 var selectedCustomerName by rememberSaveable { mutableStateOf<String?>(null) }
                 var selectedCustomerPhone by rememberSaveable { mutableStateOf<String?>(null) }
                 val customerViewModel = remember {
@@ -116,6 +128,8 @@ class MainActivity : ComponentActivity() {
                 val profileViewModel = remember(uid) {
                     if (uid == null) null else BusinessProfileViewModel(uid, profileRepo)
                 }
+                val syncManager = remember { CloudSyncManager(db, FirebaseFirestore.getInstance()) }
+                val scope = rememberCoroutineScope()
 
                 // ----------------------------
                 // Screen routing
@@ -128,14 +142,54 @@ class MainActivity : ComponentActivity() {
                         settingsRepository = settingsRepo
                     )
                 }
+                var selectedSaleId by rememberSaveable { mutableStateOf<Int?>(null) }
 
                 if (!isLoggedIn) {
                     PhoneLoginScreen(
-                        onSignedIn = { isLoggedIn = true }
+                        onSignedIn = {
+                            isLoggedIn = true
+                            val currentUid = auth.currentUser?.uid
+                            if (currentUid != null) {
+                                scope.launch {
+                                    try {
+                                        syncManager.syncAll(currentUid)
+                                    } catch (_: Exception) {
+                                    }
+                                }
+                            }
+                        }
                     )
                     return@ARSTokenTheme
                 }
                 profileViewModel?.startSync { }
+
+                val syncEnabled = settingsState?.syncEnabled ?: true
+                val syncHour = settingsState?.syncHour ?: 22
+                val syncMinute = settingsState?.syncMinute ?: 0
+                LaunchedEffect(isLoggedIn, syncEnabled, syncHour, syncMinute, uid) {
+                    if (!isLoggedIn || !syncEnabled || uid == null) return@LaunchedEffect
+                    while (isActive) {
+                        val now = Calendar.getInstance()
+                        val next = Calendar.getInstance().apply {
+                            set(Calendar.HOUR_OF_DAY, syncHour)
+                            set(Calendar.MINUTE, syncMinute)
+                            set(Calendar.SECOND, 0)
+                            set(Calendar.MILLISECOND, 0)
+                            if (before(now)) {
+                                add(Calendar.DAY_OF_YEAR, 1)
+                            }
+                        }
+                        val delayMs = next.timeInMillis - now.timeInMillis
+                        delay(delayMs)
+                        if (isLoggedIn) {
+                            try {
+                                syncManager.syncAll(uid)
+                            } catch (_: Exception) {
+                            }
+                        }
+                        delay(1_000L)
+                    }
+                }
                 val profileState = profileViewModel?.profile?.collectAsState()
                 val businessName = profileState?.value?.businessName?.takeIf { it.isNotBlank() }
                 val logoUrl = profileState?.value?.logoUrl
@@ -173,15 +227,39 @@ class MainActivity : ComponentActivity() {
 
                     AdminScreen.REPORTS -> {
                         val vm = remember(reportRepo) {
-                            ItemSalesViewModel(reportRepo)
+                            ItemSalesViewModel(reportRepo, db, settingsRepo)
                         }
 
                         ItemSalesReportScreen(
                             viewModel = vm,
                             onBack = {
                                 currentScreen = AdminScreen.BILLING   // 👈 THIS WAS MISSING
-                            }
+                            },
+                            onSaleSelected = { saleId ->
+                                selectedSaleId = saleId
+                                currentScreen = AdminScreen.BILL_DETAIL
+                            },
+                            settings = settingsState ?: StoreSettingsEntity(storeName = "My Store", phone = ""),
+                            businessName = businessName
                         )
+                    }
+                    AdminScreen.BILL_DETAIL -> {
+                        val saleId = selectedSaleId
+                        if (saleId != null) {
+                            val detailVm = remember(saleId) {
+                                BillDetailViewModel(db, saleId)
+                            }
+                            BillDetailScreen(
+                                viewModel = detailVm,
+                                settings = settingsState ?: StoreSettingsEntity(storeName = "My Store", phone = ""),
+                                businessName = businessName,
+                                onBack = {
+                                    currentScreen = AdminScreen.REPORTS
+                                }
+                            )
+                        } else {
+                            currentScreen = AdminScreen.REPORTS
+                        }
                     }
 
                     AdminScreen.CUSTOMERS -> {
@@ -189,6 +267,7 @@ class MainActivity : ComponentActivity() {
                             viewModel = customerViewModel,
                             onCustomerSelected = {
                                 selectedCustomerId = it.id
+                                selectedCustomerCloudId = it.cloudId
                                 selectedCustomerName = it.name
                                 selectedCustomerPhone = it.phone
                                 currentScreen = AdminScreen.CUSTOMER_LEDGER
@@ -199,13 +278,15 @@ class MainActivity : ComponentActivity() {
 
                     AdminScreen.CUSTOMER_LEDGER -> {
                         val customerId = selectedCustomerId
+                        val customerCloudId = selectedCustomerCloudId
                         val customerName = selectedCustomerName
                         val customerPhone = selectedCustomerPhone
                         if (customerId != null && customerName != null) {
-                            val ledgerVm = remember(customerId, customerName) {
+                            val ledgerVm = remember(customerId, customerName, customerCloudId) {
                                 CustomerLedgerViewModel(
                                     customerId = customerId,
                                     customerName = customerName,
+                                    customerCloudId = customerCloudId,
                                     saleRepository = saleRepo
                                 )
                             }
@@ -252,6 +333,26 @@ class MainActivity : ComponentActivity() {
                             onSignOut = {
                                 FirebaseAuth.getInstance().signOut()
                                 currentScreen = AdminScreen.BILLING
+                            },
+                            settings = settingsState,
+                            onSyncNow = {
+                                if (uid != null) {
+                                    scope.launch {
+                                        try {
+                                            syncManager.syncAll(uid)
+                                        } catch (_: Exception) {
+                                        }
+                                    }
+                                }
+                            },
+                            onSaveSyncTime = { hour, minute ->
+                                val current = settingsState ?: StoreSettingsEntity(storeName = "My Store", phone = "")
+                                settingsViewModel.save(
+                                    current.copy(
+                                        syncHour = hour,
+                                        syncMinute = minute
+                                    )
+                                )
                             }
                         )
                     }

@@ -34,6 +34,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.ar.arstoken.data.db.StoreSettingsEntity
 import com.ar.arstoken.viewmodel.SettingsViewModel
+import androidx.activity.compose.BackHandler
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -116,5 +117,9 @@ fun SettingsScreen(
                 Text("Save")
             }
         }
+    }
+
+    BackHandler {
+        onBack()
     }
 }

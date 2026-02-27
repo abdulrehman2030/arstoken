@@ -9,6 +9,9 @@ interface StoreSettingsDao {
     @Query("SELECT * FROM store_settings WHERE id = 1")
     fun observeSettings(): Flow<StoreSettingsEntity?>
 
+    @Query("SELECT * FROM store_settings WHERE id = 1")
+    suspend fun getOnce(): StoreSettingsEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun save(settings: StoreSettingsEntity)
 }

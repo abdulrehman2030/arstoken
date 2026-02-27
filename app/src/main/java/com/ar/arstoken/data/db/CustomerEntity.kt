@@ -7,7 +7,9 @@ import androidx.room.PrimaryKey
 data class CustomerEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
+    val cloudId: String = "",
     val name: String,
     val phone: String,
-    val creditBalance: Int = 0
+    val creditBalance: Int = 0,
+    val updatedAt: Long = 0
 )

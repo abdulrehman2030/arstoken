@@ -17,6 +17,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import com.ar.arstoken.model.Customer
 import com.ar.arstoken.viewmodel.CustomerViewModel
+import androidx.activity.compose.BackHandler
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -135,6 +136,7 @@ fun CustomersScreen(
             }
         }
     }
+    BackHandler { onBack() }
     if (showEditDialog && editingCustomer != null) {
         AlertDialog(
             onDismissRequest = { showEditDialog = false },
