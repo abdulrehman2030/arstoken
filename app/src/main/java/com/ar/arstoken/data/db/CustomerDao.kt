@@ -8,6 +8,9 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface CustomerDao {
 
+    @Query("DELETE FROM customers")
+    suspend fun deleteAll()
+
     // Insert new customer
     @Insert
     suspend fun insert(customer: CustomerEntity)

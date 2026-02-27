@@ -7,6 +7,9 @@ import androidx.room.Query
 @Dao
 interface CreditLedgerDao {
 
+    @Query("DELETE FROM credit_ledger")
+    suspend fun deleteAll()
+
     @Insert
     suspend fun insert(entry: CreditLedgerEntity)
 

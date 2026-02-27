@@ -14,6 +14,15 @@ class CloudSyncManager(
     private val firestore: FirebaseFirestore
 ) {
 
+    suspend fun refreshFromCloudOnLogin(uid: String) = withContext(Dispatchers.IO) {
+        clearLocalUserData()
+        syncAll(uid)
+    }
+
+    suspend fun clearLocalData() = withContext(Dispatchers.IO) {
+        clearLocalUserData()
+    }
+
     suspend fun syncAll(uid: String) = withContext(Dispatchers.IO) {
         syncCustomers(uid)
         syncItems(uid)
@@ -26,6 +35,17 @@ class CloudSyncManager(
 
     private fun base(uid: String) =
         firestore.collection("users").document(uid)
+
+    private suspend fun clearLocalUserData() {
+        // Delete child tables first to avoid FK/order issues.
+        db.creditLedgerDao().deleteAll()
+        db.saleItemDao().deleteAll()
+        db.saleDao().deleteAll()
+        db.customerDao().deleteAll()
+        db.itemDao().deleteAll()
+        db.categoryDao().deleteAll()
+        db.storeSettingsDao().deleteAll()
+    }
 
     private suspend fun syncCustomers(uid: String) {
         val dao = db.customerDao()

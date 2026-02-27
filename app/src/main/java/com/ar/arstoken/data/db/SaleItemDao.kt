@@ -8,6 +8,9 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface SaleItemDao {
 
+    @Query("DELETE FROM sale_items")
+    suspend fun deleteAll()
+
     @Query(
         """
         SELECT 

@@ -74,6 +74,7 @@ class MainActivity : ComponentActivity() {
                     mutableStateOf(AdminScreen.BILLING)
                 }
                 var showSavedMessage by remember { mutableStateOf(false) }
+                var lastLoginRefreshUid by rememberSaveable { mutableStateOf<String?>(null) }
 
                 // ----------------------------
                 // Database (single instance)
@@ -143,21 +144,22 @@ class MainActivity : ComponentActivity() {
                 var selectedSaleId by rememberSaveable { mutableStateOf<Int?>(null) }
 
                 if (!isLoggedIn) {
+                    lastLoginRefreshUid = null
                     PhoneLoginScreen(
                         onSignedIn = {
                             isLoggedIn = true
-                            val currentUid = auth.currentUser?.uid
-                            if (currentUid != null) {
-                                scope.launch {
-                                    try {
-                                        syncManager.syncAll(currentUid)
-                                    } catch (_: Exception) {
-                                    }
-                                }
-                            }
                         }
                     )
                     return@ARSTokenTheme
+                }
+
+                LaunchedEffect(isLoggedIn, uid) {
+                    if (!isLoggedIn || uid == null || lastLoginRefreshUid == uid) return@LaunchedEffect
+                    try {
+                        syncManager.refreshFromCloudOnLogin(uid)
+                        lastLoginRefreshUid = uid
+                    } catch (_: Exception) {
+                    }
                 }
                 profileViewModel?.startSync { }
 
@@ -331,8 +333,15 @@ class MainActivity : ComponentActivity() {
                                 currentScreen = AdminScreen.PRINT_SETTINGS
                             },
                             onSignOut = {
-                                FirebaseAuth.getInstance().signOut()
-                                currentScreen = AdminScreen.BILLING
+                                scope.launch {
+                                    try {
+                                        syncManager.clearLocalData()
+                                    } catch (_: Exception) {
+                                    }
+                                    lastLoginRefreshUid = null
+                                    FirebaseAuth.getInstance().signOut()
+                                    currentScreen = AdminScreen.BILLING
+                                }
                             },
                             settings = settingsState,
                             onSyncNow = {

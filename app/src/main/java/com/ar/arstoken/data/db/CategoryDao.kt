@@ -8,6 +8,9 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface CategoryDao {
 
+    @Query("DELETE FROM categories")
+    suspend fun deleteAll()
+
     @Query("SELECT * FROM categories WHERE isActive = 1 ORDER BY name")
     fun getActiveCategories(): Flow<List<CategoryEntity>>
 

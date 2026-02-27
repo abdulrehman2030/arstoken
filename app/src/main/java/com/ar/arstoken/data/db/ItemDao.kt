@@ -8,6 +8,9 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface ItemDao {
 
+    @Query("DELETE FROM items")
+    suspend fun deleteAll()
+
     @Query("SELECT * FROM items WHERE isActive = 1 ORDER BY name")
     fun getActiveItems(): Flow<List<ItemEntity>>
 
