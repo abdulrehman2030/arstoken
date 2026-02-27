@@ -3,6 +3,7 @@ package com.ar.arstoken.util
 import com.ar.arstoken.data.db.SaleEntity
 import java.text.SimpleDateFormat
 import java.util.*
+import com.ar.arstoken.util.formatAmount
 
 fun salesToCsv(
     customerName: String,
@@ -15,7 +16,7 @@ fun salesToCsv(
     val rows = sales.joinToString("\n") { sale ->
         val date = sdf.format(Date(sale.timestamp))
         val due = sale.totalAmount - sale.paidAmount
-        "$date,${sale.totalAmount},${sale.paidAmount},$due,${sale.saleType}"
+        "$date,${formatAmount(sale.totalAmount)},${formatAmount(sale.paidAmount)},${formatAmount(due)},${sale.saleType}"
     }
 
     return "Customer,$customerName\n\n$header$rows"

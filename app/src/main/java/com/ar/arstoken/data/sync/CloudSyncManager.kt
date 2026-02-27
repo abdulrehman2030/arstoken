@@ -394,7 +394,7 @@ data class CustomerRemote(
     val cloudId: String = "",
     val name: String = "",
     val phone: String = "",
-    val creditBalance: Int = 0,
+    val creditBalance: Double = 0.0,
     val updatedAt: Long = 0
 )
 
@@ -421,9 +421,9 @@ data class SaleRemote(
     val customerCloudId: String? = null,
     val customerName: String? = null,
     val saleType: String = "",
-    val totalAmount: Int = 0,
-    val paidAmount: Int = 0,
-    val dueAmount: Int = 0,
+    val totalAmount: Double = 0.0,
+    val paidAmount: Double = 0.0,
+    val dueAmount: Double = 0.0,
     val updatedAt: Long = 0
 )
 
@@ -433,9 +433,9 @@ data class SaleItemRemote(
     val saleCloudId: String = "",
     val itemCloudId: String = "",
     val itemName: String = "",
-    val quantity: Int = 0,
+    val quantity: Double = 0.0,
     val unitPrice: Int = 0,
-    val totalPrice: Int = 0,
+    val totalPrice: Double = 0.0,
     val timestamp: Long = 0,
     val updatedAt: Long = 0
 )
@@ -448,9 +448,9 @@ data class CreditLedgerRemote(
     val billNumber: Int = 0,
     val saleCloudId: String? = null,
     val timestamp: Long = 0,
-    val totalAmount: Int = 0,
-    val paidAmount: Int = 0,
-    val dueAmount: Int = 0,
+    val totalAmount: Double = 0.0,
+    val paidAmount: Double = 0.0,
+    val dueAmount: Double = 0.0,
     val updatedAt: Long = 0
 )
 

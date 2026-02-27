@@ -36,6 +36,7 @@ import androidx.core.content.ContextCompat
 import com.ar.arstoken.data.db.SaleEntity
 import com.ar.arstoken.data.db.StoreSettingsEntity
 import com.ar.arstoken.util.ThermalPrinterHelper
+import com.ar.arstoken.util.formatAmount
 import com.ar.arstoken.viewmodel.ItemSalesViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -50,7 +51,8 @@ fun ItemSalesReportScreen(
     onBack: () -> Unit,
     onSaleSelected: (Int) -> Unit,
     settings: StoreSettingsEntity,
-    businessName: String?
+    businessName: String?,
+    businessPhone: String?
 ) {
     val sales by viewModel.sales.collectAsState<List<SaleEntity>>()
     val formatter = rememberDateFormatter()
@@ -71,7 +73,8 @@ fun ItemSalesReportScreen(
             val saleId = pendingSaleId ?: return@rememberLauncherForActivityResult
             pendingSaleId = null
             scope.launch {
-                val receipt = viewModel.buildReceipt(saleId, businessName) ?: return@launch
+                val receipt = viewModel.buildReceipt(saleId, businessName, businessPhone)
+                    ?: return@launch
                 ThermalPrinterHelper().printToPairedPrinter(
                     text = receipt,
                     options = ThermalPrinterHelper.PrintOptions(
@@ -143,15 +146,19 @@ fun ItemSalesReportScreen(
                             )
                             Text("Customer: ${sale.customerName ?: "Cash Sale"}")
                             Text("Mode: ${sale.saleType}")
-                            Text("Total: ₹${sale.totalAmount}")
-                            Text("Paid: ₹${sale.paidAmount}")
-                            Text("Due: ₹${sale.dueAmount}")
+                            Text("Total: ₹${formatAmount(sale.totalAmount)}")
+                            Text("Paid: ₹${formatAmount(sale.paidAmount)}")
+                            Text("Due: ₹${formatAmount(sale.dueAmount)}")
                             Spacer(Modifier.height(8.dp))
                             TextButton(
                                 onClick = {
                                     if (hasBtConnectPermission) {
                                         scope.launch {
-                                            val receipt = viewModel.buildReceipt(sale.id, businessName) ?: return@launch
+                                            val receipt = viewModel.buildReceipt(
+                                                sale.id,
+                                                businessName,
+                                                businessPhone
+                                            ) ?: return@launch
                                             ThermalPrinterHelper().printToPairedPrinter(
                                                 text = receipt,
                                                 options = ThermalPrinterHelper.PrintOptions(

@@ -190,6 +190,7 @@ class MainActivity : ComponentActivity() {
                 }
                 val profileState = profileViewModel?.profile?.collectAsState()
                 val businessName = profileState?.value?.businessName?.takeIf { it.isNotBlank() }
+                val businessPhone = profileState?.value?.phone?.takeIf { it.isNotBlank() }
                 val logoUrl = profileState?.value?.logoUrl
                 val hasProfile = profileState?.value != null
 
@@ -205,6 +206,7 @@ class MainActivity : ComponentActivity() {
                         BillingScreen(
                             viewModel = billingViewModel,
                             businessName = businessName ?: "ARS Token",
+                            businessPhone = businessPhone,
                             logoUrl = logoUrl,
                             onOpenReports = {
                                 currentScreen = AdminScreen.REPORTS
@@ -238,7 +240,8 @@ class MainActivity : ComponentActivity() {
                                 currentScreen = AdminScreen.BILL_DETAIL
                             },
                             settings = settingsState ?: StoreSettingsEntity(storeName = "My Store", phone = ""),
-                            businessName = businessName
+                            businessName = businessName,
+                            businessPhone = businessPhone
                         )
                     }
                     AdminScreen.BILL_DETAIL -> {
@@ -251,6 +254,7 @@ class MainActivity : ComponentActivity() {
                                 viewModel = detailVm,
                                 settings = settingsState ?: StoreSettingsEntity(storeName = "My Store", phone = ""),
                                 businessName = businessName,
+                                businessPhone = businessPhone,
                                 onBack = {
                                     currentScreen = AdminScreen.REPORTS
                                 }
@@ -292,6 +296,7 @@ class MainActivity : ComponentActivity() {
                             CustomerLedgerScreen(
                                 customerName = customerName,
                                 customerPhone = customerPhone.orEmpty(),
+                                businessName = businessName,
                                 viewModel = ledgerVm,
                                 onBack = {
                                     currentScreen = AdminScreen.CUSTOMERS

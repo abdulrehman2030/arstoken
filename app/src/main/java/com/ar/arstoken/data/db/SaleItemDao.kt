@@ -64,9 +64,9 @@ interface SaleItemDao {
         itemId: Int,
         itemCloudId: String,
         itemName: String,
-        quantity: Int,
+        quantity: Double,
         unitPrice: Int,
-        totalPrice: Int,
+        totalPrice: Double,
         timestamp: Long,
         updatedAt: Long
     )

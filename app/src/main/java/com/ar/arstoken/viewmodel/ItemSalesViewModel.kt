@@ -55,7 +55,11 @@ class ItemSalesViewModel(
         toDate.value = endOfToday()
     }
 
-    suspend fun buildReceipt(saleId: Int, businessName: String?): String? =
+    suspend fun buildReceipt(
+        saleId: Int,
+        businessName: String?,
+        businessPhone: String?
+    ): String? =
         withContext(Dispatchers.IO) {
             val sale = db.saleDao().getSaleById(saleId).first() ?: return@withContext null
             val items = db.saleItemDao().getItemsForSale(saleId).first()
@@ -63,6 +67,7 @@ class ItemSalesViewModel(
             formatReceipt(
                 settings = settings,
                 businessNameOverride = businessName,
+                businessPhoneOverride = businessPhone,
                 sale = sale,
                 items = items,
                 headerNote = "TOKEN COPY"

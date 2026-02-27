@@ -17,10 +17,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.ar.arstoken.util.formatAmount
 
 @Composable
 fun BottomActionBar(
-    total: Int,
+    total: Double,
     onProceed: () -> Unit,
     onMore: () -> Unit
 ) {
@@ -42,7 +43,7 @@ fun BottomActionBar(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "₹ $total",
+                    text = "₹ ${formatAmount(total)}",
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleLarge
                 )

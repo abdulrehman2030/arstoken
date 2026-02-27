@@ -27,9 +27,9 @@ class CustomerLedgerViewModel(
             emptyList()
         )
 
-    fun receivePayment(amount: Int) {
+    fun receivePayment(amount: Double) {
         val currentDue = getCurrentDue()
-        if (amount <= 0 || amount > currentDue) return
+        if (amount <= 0.0 || amount > currentDue) return
 
         val now = nowMs()
         val saleCloudId = newCloudId()
@@ -40,7 +40,7 @@ class CustomerLedgerViewModel(
             customerCloudId = customerCloudId,
             customerName = customerName,
             saleType = SaleType.PAYMENT.name,
-            totalAmount = 0,
+            totalAmount = 0.0,
             paidAmount = amount,
             dueAmount = -amount,
             updatedAt = now
@@ -66,7 +66,7 @@ class CustomerLedgerViewModel(
         }
     }
 
-    fun getCurrentDue(): Int {
+    fun getCurrentDue(): Double {
         return sales.value.sumOf { it.totalAmount - it.paidAmount }
     }
 

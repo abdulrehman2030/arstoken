@@ -36,6 +36,7 @@ import kotlinx.coroutines.withContext
 fun BillingScreen(
     viewModel: BillingViewModel,
     businessName: String,
+    businessPhone: String?,
     logoUrl: String?,
     onOpenReports: () -> Unit,
     onOpenCustomers: () -> Unit,
@@ -63,8 +64,8 @@ fun BillingScreen(
     var showEditSheet by remember { mutableStateOf(false) }
     var selectedItem by remember { mutableStateOf<Item?>(null) }
     var showMoreSheet by remember { mutableStateOf(false) }
-    var editQuantity by remember { mutableStateOf(1) }
-    var editTotalPrice by remember { mutableStateOf(0) }
+    var editQuantity by remember { mutableStateOf(1.0) }
+    var editTotalPrice by remember { mutableStateOf(0.0) }
     var pendingReceipt by remember { mutableStateOf<String?>(null) }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val moreSheetState = rememberModalBottomSheetState(
@@ -257,6 +258,7 @@ fun BillingScreen(
                         if (viewModel.cart.isNotEmpty()) {
                             viewModel.proceedSale(
                                 businessNameOverride = businessName,
+                                businessPhoneOverride = businessPhone,
                                 onReceiptReady = { receipt ->
                                     if (hasBtConnectPermission) {
                                         scope.launch {
@@ -350,8 +352,8 @@ fun BillingScreen(
                                     editTotalPrice = cartItem.qty * cartItem.item.price
                                 } else {
                                     selectedItem = item
-                                    editQuantity = 1
-                                    editTotalPrice = item.price
+                                    editQuantity = 1.0
+                                    editTotalPrice = item.price.toDouble()
                                 }
 
                                 showEditSheet = true

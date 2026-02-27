@@ -18,7 +18,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         StoreSettingsEntity::class,
         BusinessProfileEntity::class
     ],
-    version = 10
+    version = 11
 )
 abstract class AppDatabase : RoomDatabase() {
 
@@ -297,6 +297,126 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // customers (creditBalance -> REAL)
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `customers_new` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `cloudId` TEXT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `phone` TEXT NOT NULL,
+                        `creditBalance` REAL NOT NULL,
+                        `updatedAt` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    INSERT INTO `customers_new` (`id`, `cloudId`, `name`, `phone`, `creditBalance`, `updatedAt`)
+                    SELECT `id`, `cloudId`, `name`, `phone`, CAST(`creditBalance` AS REAL), `updatedAt`
+                    FROM `customers`
+                    """.trimIndent()
+                )
+                db.execSQL("DROP TABLE `customers`")
+                db.execSQL("ALTER TABLE `customers_new` RENAME TO `customers`")
+
+                // sales (amounts -> REAL)
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `sales_new` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `cloudId` TEXT NOT NULL,
+                        `timestamp` INTEGER NOT NULL,
+                        `customerId` INTEGER,
+                        `customerCloudId` TEXT,
+                        `customerName` TEXT,
+                        `saleType` TEXT NOT NULL,
+                        `totalAmount` REAL NOT NULL,
+                        `paidAmount` REAL NOT NULL,
+                        `dueAmount` REAL NOT NULL,
+                        `synced` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    INSERT INTO `sales_new` (`id`, `cloudId`, `timestamp`, `customerId`, `customerCloudId`, `customerName`, `saleType`, `totalAmount`, `paidAmount`, `dueAmount`, `synced`, `updatedAt`)
+                    SELECT `id`, `cloudId`, `timestamp`, `customerId`, `customerCloudId`, `customerName`, `saleType`,
+                           CAST(`totalAmount` AS REAL), CAST(`paidAmount` AS REAL), CAST(`dueAmount` AS REAL), `synced`, `updatedAt`
+                    FROM `sales`
+                    """.trimIndent()
+                )
+                db.execSQL("DROP TABLE `sales`")
+                db.execSQL("ALTER TABLE `sales_new` RENAME TO `sales`")
+
+                // sale_items (quantity/totalPrice -> REAL)
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `sale_items_new` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `cloudId` TEXT NOT NULL,
+                        `saleId` INTEGER NOT NULL,
+                        `saleCloudId` TEXT NOT NULL,
+                        `itemId` INTEGER NOT NULL,
+                        `itemCloudId` TEXT NOT NULL,
+                        `itemName` TEXT NOT NULL,
+                        `quantity` REAL NOT NULL,
+                        `unitPrice` INTEGER NOT NULL,
+                        `totalPrice` REAL NOT NULL,
+                        `timestamp` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        FOREIGN KEY(`saleId`) REFERENCES `sales`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    INSERT INTO `sale_items_new` (`id`, `cloudId`, `saleId`, `saleCloudId`, `itemId`, `itemCloudId`, `itemName`, `quantity`, `unitPrice`, `totalPrice`, `timestamp`, `updatedAt`)
+                    SELECT `id`, `cloudId`, `saleId`, `saleCloudId`, `itemId`, `itemCloudId`, `itemName`,
+                           CAST(`quantity` AS REAL), `unitPrice`, CAST(`totalPrice` AS REAL), `timestamp`, `updatedAt`
+                    FROM `sale_items`
+                    """.trimIndent()
+                )
+                db.execSQL("DROP TABLE `sale_items`")
+                db.execSQL("ALTER TABLE `sale_items_new` RENAME TO `sale_items`")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_sale_items_saleId` ON `sale_items` (`saleId`)")
+
+                // credit_ledger (amounts -> REAL)
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `credit_ledger_new` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `cloudId` TEXT NOT NULL,
+                        `customerId` INTEGER NOT NULL,
+                        `customerCloudId` TEXT,
+                        `customerName` TEXT NOT NULL,
+                        `saleId` TEXT NOT NULL,
+                        `saleCloudId` TEXT,
+                        `timestamp` INTEGER NOT NULL,
+                        `totalAmount` REAL NOT NULL,
+                        `paidAmount` REAL NOT NULL,
+                        `dueAmount` REAL NOT NULL,
+                        `synced` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    INSERT INTO `credit_ledger_new` (`id`, `cloudId`, `customerId`, `customerCloudId`, `customerName`, `saleId`, `saleCloudId`, `timestamp`, `totalAmount`, `paidAmount`, `dueAmount`, `synced`, `updatedAt`)
+                    SELECT `id`, `cloudId`, `customerId`, `customerCloudId`, `customerName`, `saleId`, `saleCloudId`, `timestamp`,
+                           CAST(`totalAmount` AS REAL), CAST(`paidAmount` AS REAL), CAST(`dueAmount` AS REAL), `synced`, `updatedAt`
+                    FROM `credit_ledger`
+                    """.trimIndent()
+                )
+                db.execSQL("DROP TABLE `credit_ledger`")
+                db.execSQL("ALTER TABLE `credit_ledger_new` RENAME TO `credit_ledger`")
+            }
+        }
+
         fun get(context: Context): AppDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -311,7 +431,8 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_6_7,
                         MIGRATION_7_8,
                         MIGRATION_8_9,
-                        MIGRATION_9_10
+                        MIGRATION_9_10,
+                        MIGRATION_10_11
                     )
                     .build()
                     .also { INSTANCE = it }

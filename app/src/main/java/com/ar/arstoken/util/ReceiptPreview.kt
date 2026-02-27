@@ -8,6 +8,7 @@ import kotlin.math.max
 fun formatReceiptPreview(
     settings: StoreSettingsEntity,
     businessNameOverride: String?,
+    businessPhoneOverride: String?,
     sale: SaleEntity,
     items: List<SaleItemEntity>,
     headerNote: String? = null
@@ -15,6 +16,7 @@ fun formatReceiptPreview(
     val raw = formatReceipt(
         settings = settings,
         businessNameOverride = businessNameOverride,
+        businessPhoneOverride = businessPhoneOverride,
         sale = sale,
         items = items,
         headerNote = headerNote

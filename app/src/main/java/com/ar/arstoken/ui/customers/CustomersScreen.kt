@@ -18,6 +18,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import com.ar.arstoken.model.Customer
 import com.ar.arstoken.viewmodel.CustomerViewModel
 import androidx.activity.compose.BackHandler
+import com.ar.arstoken.util.formatAmount
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -129,7 +130,7 @@ fun CustomersScreen(
                     ) {
                         ListItem(
                             headlineContent = { Text(customer.name) },
-                            supportingContent = { Text("Due: ₹${customer.creditBalance}") }
+                            supportingContent = { Text("Due: ₹${formatAmount(customer.creditBalance)}") }
                         )
                     }
                 }

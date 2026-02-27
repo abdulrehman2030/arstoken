@@ -39,9 +39,9 @@ interface CreditLedgerDao {
         saleId: String,
         saleCloudId: String?,
         timestamp: Long,
-        totalAmount: Int,
-        paidAmount: Int,
-        dueAmount: Int,
+        totalAmount: Double,
+        paidAmount: Double,
+        dueAmount: Double,
         synced: Boolean,
         updatedAt: Long
     )
@@ -59,12 +59,12 @@ interface CreditLedgerDao {
         FROM credit_ledger
         WHERE customerId = :customerId
     """)
-    suspend fun getTotalDue(customerId: Int): Int?
+    suspend fun getTotalDue(customerId: Int): Double?
 
     @Query("""
     SELECT SUM(dueAmount)
     FROM credit_ledger
 """)
-    suspend fun getOverallDue(): Int?
+    suspend fun getOverallDue(): Double?
 
 }

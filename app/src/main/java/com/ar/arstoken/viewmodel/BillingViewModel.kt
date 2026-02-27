@@ -21,10 +21,12 @@ import com.ar.arstoken.model.PaymentMode
 import com.ar.arstoken.util.formatReceipt
 import com.ar.arstoken.util.newCloudId
 import com.ar.arstoken.util.nowMs
+import com.ar.arstoken.util.round2
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 
 class BillingViewModel(
@@ -90,7 +92,7 @@ class BillingViewModel(
     var paymentMode by mutableStateOf(PaymentMode.CASH)
         private set
 
-    var partialPaidAmount by mutableStateOf(0)
+    var partialPaidAmount by mutableStateOf(0.0)
         private set
 
 
@@ -109,13 +111,13 @@ class BillingViewModel(
         if (index >= 0) {
             val existing = _cart[index]
             _cart[index] = existing.copy(
-                qty = existing.qty + 1
+                qty = existing.qty + 1.0
             )
         } else {
             _cart.add(
                 CartItem(
                     item = item,
-                    qty = 1
+                    qty = 1.0
                 )
             )
         }
@@ -126,12 +128,12 @@ class BillingViewModel(
     // --------------------
     fun addItemWithCustomPrice(
         item: Item,
-        quantity: Int,
-        totalPrice: Int
+        quantity: Double,
+        totalPrice: Double
     ) {
-        if (quantity <= 0 || totalPrice <= 0) return
+        if (quantity <= 0.0 || totalPrice <= 0.0) return
 
-        val unitPrice = totalPrice / quantity
+        val unitPrice = (totalPrice / quantity).roundToInt().coerceAtLeast(1)
 
         val updatedItem = CartItem(
             item = item.copy(price = unitPrice),
@@ -147,8 +149,8 @@ class BillingViewModel(
     // --------------------
     // Total calculation
     // --------------------
-    fun getTotal(): Int {
-        return _cart.sumOf { it.item.price * it.qty }
+    fun getTotal(): Double {
+        return round2(_cart.sumOf { it.item.price * it.qty })
     }
 
     fun selectCustomer(customer: Customer?) {
@@ -156,7 +158,7 @@ class BillingViewModel(
 
         if (customer == null) {
             paymentMode = PaymentMode.CASH
-            partialPaidAmount = 0
+            partialPaidAmount = 0.0
         }
     }
 
@@ -171,7 +173,7 @@ class BillingViewModel(
         return _cart.find { it.item.id == itemId }
     }
 
-    fun getCartQuantity(itemId: Int): Int? {
+    fun getCartQuantity(itemId: Int): Double? {
         return _cart.find { it.item.id == itemId }?.qty
     }
 
@@ -182,12 +184,12 @@ class BillingViewModel(
     fun updatePaymentMode(mode: PaymentMode) {
         paymentMode = mode
         if (mode != PaymentMode.PARTIAL) {
-            partialPaidAmount = 0
+            partialPaidAmount = 0.0
         }
     }
 
     fun setPartialPaidAmount(input: String) {
-        partialPaidAmount = input.toIntOrNull() ?: 0
+        partialPaidAmount = input.toDoubleOrNull() ?: 0.0
     }
 
     // --------------------
@@ -195,25 +197,26 @@ class BillingViewModel(
     // --------------------
     fun proceedSale(
         businessNameOverride: String? = null,
+        businessPhoneOverride: String? = null,
         onReceiptReady: (String) -> Unit = {},
         onSaleSaved: () -> Unit = {}
     ) {
         if (cart.isEmpty()) return
 
         val total = getTotal()
-        if (total <= 0) return
+        if (total <= 0.0) return
 
         val customerId = selectedCustomer?.id ?: 0
         val customerName = selectedCustomer?.name ?: "Retail"
 
         val paidAmount = when (paymentMode) {
             PaymentMode.CASH -> total
-            PaymentMode.CREDIT -> 0
+            PaymentMode.CREDIT -> 0.0
             PaymentMode.PARTIAL -> partialPaidAmount
         }
 
         if (paymentMode == PaymentMode.PARTIAL &&
-            (paidAmount <= 0 || paidAmount >= total)
+            (paidAmount <= 0.0 || paidAmount >= total)
         ) return
 
         val saleCloudId = newCloudId()
@@ -225,9 +228,9 @@ class BillingViewModel(
             customerCloudId = selectedCustomer?.cloudId,
             customerName = customerName,
             saleType = paymentMode.name,
-            totalAmount = total,
-            paidAmount = paidAmount,
-            dueAmount = total - paidAmount,
+            totalAmount = round2(total),
+            paidAmount = round2(paidAmount),
+            dueAmount = round2(total - paidAmount),
             updatedAt = now
         )
 
@@ -245,9 +248,9 @@ class BillingViewModel(
                     itemId = cartItem.item.id,
                     itemCloudId = cartItem.item.cloudId,
                     itemName = cartItem.item.name,
-                    quantity = cartItem.qty,
+                    quantity = round2(cartItem.qty),
                     unitPrice = cartItem.item.price,
-                    totalPrice = cartItem.qty * cartItem.item.price,
+                    totalPrice = round2(cartItem.qty * cartItem.item.price),
                     timestamp = System.currentTimeMillis(),
                     updatedAt = now
                 )
@@ -285,6 +288,7 @@ class BillingViewModel(
             val receipt = formatReceipt(
                 settings = settings,
                 businessNameOverride = businessNameOverride,
+                businessPhoneOverride = businessPhoneOverride,
                 sale = sale.copy(id = saleId.toInt()),
                 items = printableItems
             )
@@ -297,7 +301,7 @@ class BillingViewModel(
             // Reset bill options for the next bill.
             selectedCustomer = null
             paymentMode = PaymentMode.CASH
-            partialPaidAmount = 0
+            partialPaidAmount = 0.0
             onSaleSaved()
         }
     }

@@ -42,7 +42,7 @@ interface CustomerDao {
         id: Int,
         name: String,
         phone: String,
-        creditBalance: Int,
+        creditBalance: Double,
         updatedAt: Long
     )
 
@@ -55,7 +55,7 @@ interface CustomerDao {
     """)
     suspend fun updateBalance(
         customerId: Int,
-        amount: Int,
+        amount: Double,
         updatedAt: Long
     )
 
@@ -65,7 +65,7 @@ interface CustomerDao {
         FROM customers
         WHERE id = :customerId
     """)
-    suspend fun getBalance(customerId: Int): Int?
+    suspend fun getBalance(customerId: Int): Double?
 
     @Query("""
     UPDATE customers

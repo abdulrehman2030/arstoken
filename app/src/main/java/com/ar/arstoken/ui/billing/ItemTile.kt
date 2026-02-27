@@ -28,14 +28,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import java.util.Locale
+import com.ar.arstoken.util.formatQty
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ItemTile(
     name: String,
     price: Int,
-    quantityInCart: Int?,
+    quantityInCart: Double?,
     onClick: () -> Unit,
     onLongPress: () -> Unit,
     onRemove: () -> Unit
@@ -79,13 +79,13 @@ fun ItemTile(
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 ) {
                     Text(
-                        text = "${quantityInCart ?: 0} x $price",
+                        text = "${formatQty(quantityInCart ?: 0.0)} x $price",
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp),
                         style = MaterialTheme.typography.bodyLarge
                     )
                 }
             }
-            if (quantityInCart != null && quantityInCart > 0) {
+            if (quantityInCart != null && quantityInCart > 0.0) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)

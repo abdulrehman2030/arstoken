@@ -32,6 +32,7 @@ fun BillDetailScreen(
     viewModel: BillDetailViewModel,
     settings: StoreSettingsEntity,
     businessName: String?,
+    businessPhone: String?,
     onBack: () -> Unit
 ) {
     val sale by viewModel.sale.collectAsState()
@@ -41,6 +42,7 @@ fun BillDetailScreen(
         formatReceiptPreview(
             settings = settings,
             businessNameOverride = businessName,
+            businessPhoneOverride = businessPhone,
             sale = sale!!,
             items = items
         )

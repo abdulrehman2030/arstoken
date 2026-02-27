@@ -3,12 +3,15 @@ package com.ar.arstoken.util
 import com.ar.arstoken.data.db.SaleEntity
 import com.ar.arstoken.data.db.SaleItemEntity
 import com.ar.arstoken.data.db.StoreSettingsEntity
+import com.ar.arstoken.util.formatAmount
+import com.ar.arstoken.util.formatQty
 import java.text.SimpleDateFormat
 import java.util.*
 
 fun formatReceipt(
     settings: StoreSettingsEntity,
     businessNameOverride: String?,
+    businessPhoneOverride: String?,
     sale: SaleEntity,
     items: List<SaleItemEntity>,
     headerNote: String? = null
@@ -35,13 +38,13 @@ fun formatReceipt(
         val spaces = (paperWidth - l.length - r.length).coerceAtLeast(1)
         return (l + " ".repeat(spaces) + r).takeLast(paperWidth)
     }
-    fun money(v: Int): String = v.toString()
-    fun qty(v: Int): String = v.toString()
+    fun money(v: Double): String = formatAmount(v)
+    fun qty(v: Double): String = formatQty(v)
     fun fit(text: String, width: Int): String =
         if (text.length >= width) text.take(width) else text.padEnd(width, ' ')
     fun fitRight(text: String, width: Int): String =
         if (text.length >= width) text.takeLast(width) else text.padStart(width, ' ')
-    fun compact(v: Int): String = v.toString()
+    fun compact(v: Double): String = formatQty(v)
 
     val sb = StringBuilder()
 
@@ -59,8 +62,10 @@ fun formatReceipt(
     if (!headerNote.isNullOrBlank()) {
         sb.appendLine("{C}{B}$headerNote{/B}")
     }
-    if (settings.phone.isNotBlank()) {
-        sb.appendLine("{C}Phone: ${settings.phone}")
+    val phoneLine = businessPhoneOverride?.takeIf { it.isNotBlank() }
+        ?: settings.phone.takeIf { it.isNotBlank() }
+    if (!phoneLine.isNullOrBlank()) {
+        sb.appendLine("{C}Phone: $phoneLine")
     }
     sb.appendLine("{L}${dashed()}")
     sb.appendLine("{L}Bill No: ${sale.id}")
@@ -84,7 +89,7 @@ fun formatReceipt(
     sb.appendLine("{L}${dashed()}")
 
     // Table rows with wrapped item name
-    var totalQty = 0
+    var totalQty = 0.0
     items.forEachIndexed { itemIndex, row ->
         totalQty += row.quantity
         val nameParts = if (settings.printItemMultiLine) {
@@ -98,7 +103,7 @@ fun formatReceipt(
                     "{L}" + fit((itemIndex + 1).toString(), serialCol) + " " +
                         fit(part, itemCol) + " " +
                         fitRight(compact(row.quantity), qtyCol) + " " +
-                        fitRight(money(row.unitPrice), rateCol) + " " +
+                        fitRight(row.unitPrice.toString(), rateCol) + " " +
                         fitRight(money(row.totalPrice), totalCol)
                 )
             } else {

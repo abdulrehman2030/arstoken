@@ -10,6 +10,6 @@ data class CustomerEntity(
     val cloudId: String = "",
     val name: String,
     val phone: String,
-    val creditBalance: Int = 0,
+    val creditBalance: Double = 0.0,
     val updatedAt: Long = 0
 )

@@ -35,6 +35,7 @@ import com.ar.arstoken.util.shareText
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.activity.compose.BackHandler
 import kotlinx.coroutines.launch
+import com.ar.arstoken.util.formatAmount
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,6 +43,7 @@ import kotlinx.coroutines.launch
 fun CustomerLedgerScreen(
     customerName: String,
     customerPhone: String,
+    businessName: String?,
     viewModel: CustomerLedgerViewModel,
     onBack: () -> Unit
 ) {
@@ -115,7 +117,7 @@ fun CustomerLedgerScreen(
                 .padding(padding)
                 .padding(16.dp)
         ) {
-            val totalDue = ledgerRows.lastOrNull()?.second ?: 0
+            val totalDue = ledgerRows.lastOrNull()?.second ?: 0.0
 
             Row(
                 modifier = Modifier
@@ -126,12 +128,12 @@ fun CustomerLedgerScreen(
                 Button(
                     modifier = Modifier.weight(1f),
                     onClick = {
-                        if (totalDue > 0) {
+                        if (totalDue > 0.0) {
                             showPaymentDialog = true
                         } else {
                             scope.launch {
                                 snackbarHostState.showSnackbar(
-                                    "Total due is ₹$totalDue, can't receive payment."
+                                    "Total due is ₹${formatAmount(totalDue)}, can't receive payment."
                                 )
                             }
                         }
@@ -144,11 +146,11 @@ fun CustomerLedgerScreen(
                     Button(
                         modifier = Modifier.weight(1f),
                         onClick = {
-                            val totalDue = ledgerRows.lastOrNull()?.second ?: 0
+                            val totalDue = ledgerRows.lastOrNull()?.second ?: 0.0
 
                             val message = """
                                 Hi $customerName,
-                                Your pending balance at ARS Store is ₹$totalDue.
+                                Your pending balance at ${businessName?.ifBlank { "ARS Store" } ?: "ARS Store"} is ₹${formatAmount(totalDue)}.
                                 Please clear it at your convenience.
                             """.trimIndent()
 
@@ -184,9 +186,9 @@ fun CustomerLedgerScreen(
 
             Spacer(Modifier.height(12.dp))
             Text(
-                text = "Total Due: ₹$totalDue",
+                text = "Total Due: ₹${formatAmount(totalDue)}",
                 style = MaterialTheme.typography.titleMedium,
-                color = if (totalDue > 0)
+                color = if (totalDue > 0.0)
                     MaterialTheme.colorScheme.error
                 else
                     MaterialTheme.colorScheme.primary
@@ -253,9 +255,9 @@ fun CustomerLedgerScreen(
     }
     BackHandler { onBack() }
     if (showPaymentDialog) {
-        val currentDue = ledgerRows.lastOrNull()?.second ?: 0
-        val enteredAmount = paymentAmount.toIntOrNull() ?: 0
-        val remainingDue = (currentDue - enteredAmount).coerceAtLeast(0)
+        val currentDue = ledgerRows.lastOrNull()?.second ?: 0.0
+        val enteredAmount = paymentAmount.toDoubleOrNull() ?: 0.0
+        val remainingDue = (currentDue - enteredAmount).coerceAtLeast(0.0)
 
         AlertDialog(
             onDismissRequest = { showPaymentDialog = false },
@@ -276,9 +278,9 @@ fun CustomerLedgerScreen(
 
                     // ✅ THIS IS THE EXACT PLACE
                     Text(
-                        text = "Remaining due: ₹$remainingDue",
+                        text = "Remaining due: ₹${formatAmount(remainingDue)}",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = if (remainingDue == 0)
+                        color = if (remainingDue == 0.0)
                             MaterialTheme.colorScheme.primary
                         else
                             MaterialTheme.colorScheme.error
@@ -287,15 +289,16 @@ fun CustomerLedgerScreen(
             },
             confirmButton = {
                 TextButton(
-                    enabled = enteredAmount > 0 && enteredAmount <= currentDue,
+                    enabled = enteredAmount > 0.0 && enteredAmount <= currentDue,
                     onClick = {
-                    val amount = paymentAmount.toIntOrNull()
-                    if (amount != null && amount > 0 && amount <= currentDue) {
-                        viewModel.receivePayment(amount)
+                        val amount = paymentAmount.toDoubleOrNull()
+                        if (amount != null && amount > 0.0 && amount <= currentDue) {
+                            viewModel.receivePayment(amount)
+                        }
+                        paymentAmount = ""
+                        showPaymentDialog = false
                     }
-                    paymentAmount = ""
-                    showPaymentDialog = false
-                }) {
+                ) {
                     Text("Save")
                 }
             },
@@ -500,7 +503,7 @@ private fun buildFilterSummary(
 @Composable
 private fun LedgerRow(
     sale: SaleEntity,
-    runningBalance: Int
+    runningBalance: Double
 ) {
     val date = remember(sale.timestamp) {
         SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault())
@@ -511,7 +514,7 @@ private fun LedgerRow(
         Text(date, style = MaterialTheme.typography.labelSmall)
 //        Text("Bill: ₹${sale.totalAmount}")
 //        Text("Paid: ₹${sale.paidAmount}")
-        Text("Due: ₹${sale.totalAmount - sale.paidAmount}")
+        Text("Due: ₹${formatAmount(sale.totalAmount - sale.paidAmount)}")
         val isPayment = sale.saleType == SaleType.PAYMENT.name
 
         Text(
@@ -524,15 +527,15 @@ private fun LedgerRow(
 
         Text(
             text = if (isPayment)
-                "Payment: ₹${sale.paidAmount}"
+                "Payment: ₹${formatAmount(sale.paidAmount)}"
             else
-                "Bill: ₹${sale.totalAmount}"
+                "Bill: ₹${formatAmount(sale.totalAmount)}"
         )
 
 
         Text(
-            "Balance: ₹$runningBalance",
-            color = if (runningBalance > 0)
+            "Balance: ₹${formatAmount(runningBalance)}",
+            color = if (runningBalance > 0.0)
                 MaterialTheme.colorScheme.error
             else
                 MaterialTheme.colorScheme.primary
@@ -542,9 +545,9 @@ private fun LedgerRow(
 
 private fun computeRunningBalances(
     sales: List<SaleEntity>
-): List<Pair<SaleEntity, Int>> {
+): List<Pair<SaleEntity, Double>> {
 
-    var balance = 0
+    var balance = 0.0
 
     return sales.map { sale ->
         balance += (sale.totalAmount - sale.paidAmount)

@@ -10,42 +10,38 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import com.ar.arstoken.model.Item
+import com.ar.arstoken.util.formatAmount
+import com.ar.arstoken.util.formatQty
 
 @Composable
 fun EditItemSheet(
     item: Item,
-    initialQty: Int,
-    initialTotalPrice: Int,
-    onConfirm: (Int, Int) -> Unit,
+    initialQty: Double,
+    initialTotalPrice: Double,
+    onConfirm: (Double, Double) -> Unit,
     onDiscard: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val unitPrice = item.price
 
     var quantityText by remember {
-        mutableStateOf(initialQty.toString())
+        mutableStateOf(formatQty(initialQty))
     }
     var priceText by remember {
-        mutableStateOf(initialTotalPrice.toString())
+        mutableStateOf(formatAmount(initialTotalPrice))
     }
 
     var lastEdited by remember { mutableStateOf(EditField.NONE) }
-    val qty = quantityText.toIntOrNull() ?: 0
-    val price = priceText.toIntOrNull() ?: 0
-
-    val isValid = qty > 0 && price > 0
-
-
     LaunchedEffect(lastEdited, quantityText, priceText) {
         when (lastEdited) {
             EditField.QUANTITY -> {
-                val qty = quantityText.toIntOrNull() ?: return@LaunchedEffect
-                priceText = (qty * unitPrice).toString()
+                val qty = quantityText.toDoubleOrNull() ?: return@LaunchedEffect
+                priceText = formatAmount(qty * unitPrice)
             }
             EditField.PRICE -> {
-                val price = priceText.toIntOrNull() ?: return@LaunchedEffect
+                val price = priceText.toDoubleOrNull() ?: return@LaunchedEffect
                 if (unitPrice > 0) {
-                    quantityText = (price / unitPrice).toString()
+                    quantityText = formatQty(price / unitPrice)
                 }
             }
             else -> {}
@@ -75,7 +71,7 @@ fun EditItemSheet(
                     lastEdited = EditField.QUANTITY
             },
             label = { Text("Quantity") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -88,16 +84,16 @@ fun EditItemSheet(
                 lastEdited = EditField.PRICE
             },
             label = { Text("Price") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        val qty = quantityText.toIntOrNull() ?: 0
-        val totalPrice = priceText.toIntOrNull() ?: 0
+        val qty = quantityText.toDoubleOrNull() ?: 0.0
+        val totalPrice = priceText.toDoubleOrNull() ?: 0.0
 
-        val isValid = qty > 0 && totalPrice > 0
+        val isValid = qty > 0.0 && totalPrice > 0.0
 
         Row(
             modifier = Modifier.fillMaxWidth(),

@@ -16,22 +16,23 @@ import androidx.compose.runtime.setValue
 import androidx.compose.foundation.verticalScroll
 import com.ar.arstoken.model.Customer
 import com.ar.arstoken.model.PaymentMode
+import com.ar.arstoken.util.formatAmount
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MoreOptionsSheet(
     customers: List<Customer>,
     selectedCustomer: Customer?,
-    total: Int,
+    total: Double,
     paymentMode: PaymentMode,
-    partialPaidAmount: Int,
+    partialPaidAmount: Double,
     onPartialAmountChange: (String) -> Unit,
     onCustomerSelected: (Customer?) -> Unit,
     onPaymentModeChange: (PaymentMode) -> Unit,
     onSummary: () -> Unit
 ) {
     val isPartialValid = paymentMode != PaymentMode.PARTIAL ||
-        (partialPaidAmount > 0 && partialPaidAmount < total)
+        (partialPaidAmount > 0.0 && partialPaidAmount < total)
 
     Column(
         modifier = Modifier
@@ -114,18 +115,18 @@ fun MoreOptionsSheet(
         if (paymentMode == PaymentMode.PARTIAL) {
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
-                value = if (partialPaidAmount == 0) "" else partialPaidAmount.toString(),
+                value = if (partialPaidAmount == 0.0) "" else formatAmount(partialPaidAmount),
                 onValueChange = onPartialAmountChange,
                 label = { Text("Paid Amount") },
                 keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Number
+                    keyboardType = KeyboardType.Decimal
                 ),
                 modifier = Modifier.fillMaxWidth()
             )
             if (!isPartialValid) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Partial amount must be greater than 0 and less than total (₹$total).",
+                    text = "Partial amount must be greater than 0 and less than total (₹${formatAmount(total)}).",
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall
                 )
