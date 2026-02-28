@@ -215,23 +215,78 @@ class CloudSyncManager(
         val dao = db.saleDao()
         val local = dao.getAllOnce()
         val remoteSnap = base(uid).collection("sales").get().await()
-        val remoteById = remoteSnap.documents.associate { doc ->
+        val remoteByIdAll = remoteSnap.documents.associate { doc ->
             val r = doc.toObject(SaleRemote::class.java) ?: SaleRemote()
             val cloudId = r.cloudId.ifBlank { doc.id }
             cloudId to r.copy(cloudId = cloudId)
         }
+        val remoteById = remoteByIdAll.filterValues { it.billNumber > 0 }
+        val remoteDeletedByBill = remoteByIdAll.values
+            .filter {
+                it.billNumber > 0 && (
+                    it.isDeleted ||
+                        it.deletedAt != null ||
+                        !it.deleteReason.isNullOrBlank()
+                    )
+            }
+            .groupBy { it.billNumber }
+            .mapValues { (_, list) ->
+                list.maxByOrNull { it.updatedAt }!!
+            }
+        fun chooseCanonicalSale(a: SaleRemote?, b: SaleRemote?): SaleRemote? {
+            if (a == null) return b
+            if (b == null) return a
+            return when {
+                a.isDeleted && !b.isDeleted -> a
+                b.isDeleted && !a.isDeleted -> b
+                a.updatedAt >= b.updatedAt -> a
+                else -> b
+            }
+        }
+        val remoteByBill = remoteById.values
+            .filter { it.billNumber > 0 }
+            .groupBy { it.billNumber }
+            .mapValues { (_, list) ->
+                list.reduce { best, next ->
+                    chooseCanonicalSale(best, next) ?: best
+                }
+            }
 
         local.forEach { item ->
-            val cloudId = item.cloudId.ifBlank { newCloudId() }
-            if (item.cloudId.isBlank()) {
-                dao.updateCloudId(item.id, cloudId, nowMs())
+            val remoteByCloudId = item.cloudId.takeIf { it.isNotBlank() }?.let { remoteById[it] }
+            val remoteByBillNumber = remoteByBill[item.id]
+            val remote = chooseCanonicalSale(remoteByCloudId, remoteByBillNumber)
+
+            val cloudId = remote?.cloudId ?: item.cloudId.ifBlank { newCloudId() }
+            if (item.cloudId != cloudId) {
+                dao.updateCloudId(item.id, cloudId, maxOf(item.updatedAt, nowMs()))
             }
-            val remote = remoteById[cloudId]
+
             if (remote == null || item.updatedAt > remote.updatedAt) {
                 base(uid).collection("sales")
                     .document(cloudId)
                     .set(item.toRemote(cloudId), SetOptions.merge())
                     .await()
+                if (item.isDeleted) {
+                    val canonicalUpdatedAt = maxOf(item.updatedAt, nowMs())
+                    remoteByIdAll.values
+                        .filter { it.billNumber == item.id && it.cloudId != cloudId }
+                        .forEach { duplicate ->
+                            val duplicateUpdatedAt = maxOf(canonicalUpdatedAt, duplicate.updatedAt + 1L)
+                            base(uid).collection("sales")
+                                .document(duplicate.cloudId)
+                                .set(
+                                    mapOf(
+                                        "isDeleted" to true,
+                                        "deletedAt" to (item.deletedAt ?: canonicalUpdatedAt),
+                                        "deleteReason" to (item.deleteReason ?: "Deleted"),
+                                        "updatedAt" to duplicateUpdatedAt
+                                    ),
+                                    SetOptions.merge()
+                                )
+                                .await()
+                        }
+                }
             } else if (remote.updatedAt > item.updatedAt) {
                 val customerId = remote.customerCloudId
                     ?.takeIf { it.isNotBlank() }
@@ -246,20 +301,75 @@ class CloudSyncManager(
                     totalAmount = remote.totalAmount,
                     paidAmount = remote.paidAmount,
                     dueAmount = remote.dueAmount,
+                    isDeleted = remote.isDeleted,
+                    deletedAt = remote.deletedAt,
+                    deleteReason = remote.deleteReason,
                     synced = true,
                     updatedAt = remote.updatedAt
                 )
             }
         }
 
-        remoteById.values.forEach { remote ->
+        val canonicalRemotes = remoteById.values.filter { remote ->
+            val canonical = if (remote.billNumber > 0) remoteByBill[remote.billNumber] else remote
+            canonical?.cloudId == remote.cloudId
+        }
+
+        canonicalRemotes.forEach { remote ->
             val localMatch = local.firstOrNull { it.cloudId == remote.cloudId }
             if (localMatch == null) {
+                val localByBill = local.firstOrNull {
+                    remote.billNumber > 0 && it.id == remote.billNumber
+                }
                 val customerId = remote.customerCloudId
                     ?.takeIf { it.isNotBlank() }
                     ?.let { db.customerDao().findByCloudId(it)?.id }
-                dao.insert(remote.toEntity(customerId))
+                if (localByBill != null) {
+                    if (localByBill.cloudId != remote.cloudId) {
+                        dao.updateCloudId(localByBill.id, remote.cloudId, maxOf(localByBill.updatedAt, remote.updatedAt))
+                    }
+                    dao.updateFromCloud(
+                        id = localByBill.id,
+                        timestamp = remote.timestamp,
+                        customerId = customerId,
+                        customerCloudId = remote.customerCloudId,
+                        customerName = remote.customerName,
+                        saleType = remote.saleType,
+                        totalAmount = remote.totalAmount,
+                        paidAmount = remote.paidAmount,
+                        dueAmount = remote.dueAmount,
+                        isDeleted = remote.isDeleted,
+                        deletedAt = remote.deletedAt,
+                        deleteReason = remote.deleteReason,
+                        synced = true,
+                        updatedAt = remote.updatedAt
+                    )
+                } else {
+                    dao.insert(remote.toEntity(customerId))
+                }
             }
+        }
+
+        // Final guard: if any remote copy says a bill is deleted, force local deleted state.
+        remoteDeletedByBill.forEach { (billNumber, remoteDeleted) ->
+            val localSale = dao.getSaleByIdOnce(billNumber) ?: return@forEach
+            if (localSale.isDeleted) return@forEach
+            dao.updateFromCloud(
+                id = localSale.id,
+                timestamp = localSale.timestamp,
+                customerId = localSale.customerId,
+                customerCloudId = localSale.customerCloudId,
+                customerName = localSale.customerName,
+                saleType = localSale.saleType,
+                totalAmount = localSale.totalAmount,
+                paidAmount = localSale.paidAmount,
+                dueAmount = localSale.dueAmount,
+                isDeleted = true,
+                deletedAt = remoteDeleted.deletedAt ?: nowMs(),
+                deleteReason = remoteDeleted.deleteReason ?: "Deleted",
+                synced = true,
+                updatedAt = maxOf(localSale.updatedAt, remoteDeleted.updatedAt, nowMs())
+            )
         }
     }
 
@@ -444,6 +554,9 @@ data class SaleRemote(
     val totalAmount: Double = 0.0,
     val paidAmount: Double = 0.0,
     val dueAmount: Double = 0.0,
+    val isDeleted: Boolean = false,
+    val deletedAt: Long? = null,
+    val deleteReason: String? = null,
     val updatedAt: Long = 0
 )
 
@@ -557,6 +670,9 @@ private fun SaleEntity.toRemote(cloudId: String) = mapOf(
     "totalAmount" to totalAmount,
     "paidAmount" to paidAmount,
     "dueAmount" to dueAmount,
+    "isDeleted" to isDeleted,
+    "deletedAt" to deletedAt,
+    "deleteReason" to deleteReason,
     "updatedAt" to updatedAt
 )
 
@@ -571,6 +687,9 @@ private fun SaleRemote.toEntity(customerId: Int?) = SaleEntity(
     totalAmount = totalAmount,
     paidAmount = paidAmount,
     dueAmount = dueAmount,
+    isDeleted = isDeleted,
+    deletedAt = deletedAt,
+    deleteReason = deleteReason,
     updatedAt = updatedAt
 )
 

@@ -35,6 +35,6 @@ class RoomReportRepository(
         from: Long,
         to: Long
     ): Flow<List<SaleEntity>> {
-        return saleDao.getSalesBetween(from, to)
+        return saleDao.getSalesBetweenIncludingDeleted(from, to)
     }
 }

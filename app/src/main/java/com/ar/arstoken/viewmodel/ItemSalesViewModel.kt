@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ar.arstoken.data.ReportRepository
 import com.ar.arstoken.data.db.AppDatabase
+import com.ar.arstoken.data.db.SaleEntity
 import com.ar.arstoken.data.repository.SettingsRepository
 import com.ar.arstoken.util.formatReceipt
 import com.ar.arstoken.util.endOfToday
@@ -13,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import com.ar.arstoken.util.startOfWeek
 import com.ar.arstoken.util.startOfMonth
@@ -34,7 +36,9 @@ class ItemSalesViewModel(
     val sales = combine(fromDate, toDate) { from, to ->
         from to to
     }.flatMapLatest { (from, to) ->
-        reportRepository.getSales(from, to)
+        reportRepository.getSales(from, to).map { list ->
+            list.sortedByDescending { it.id }
+        }
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5_000),

@@ -31,6 +31,7 @@ interface SaleDao {
         SUM(totalAmount) 
     FROM sales
     WHERE timestamp BETWEEN :from AND :to
+      AND isDeleted = 0
 """)
     suspend fun getTotalSales(from: Long, to: Long): Double?
 
@@ -40,6 +41,7 @@ interface SaleDao {
     FROM sales
     WHERE saleType = 'CASH'
     AND timestamp BETWEEN :from AND :to
+    AND isDeleted = 0
 """)
     suspend fun getTotalCash(from: Long, to: Long): Double?
 
@@ -49,6 +51,7 @@ interface SaleDao {
     FROM sales
     WHERE saleType IN ('CREDIT','PARTIAL')
     AND timestamp BETWEEN :from AND :to
+    AND isDeleted = 0
 """)
     suspend fun getTotalCredit(from: Long, to: Long): Double?
 
@@ -71,6 +74,9 @@ interface SaleDao {
             totalAmount = :totalAmount,
             paidAmount = :paidAmount,
             dueAmount = :dueAmount,
+            isDeleted = :isDeleted,
+            deletedAt = :deletedAt,
+            deleteReason = :deleteReason,
             synced = :synced,
             updatedAt = :updatedAt
         WHERE id = :id
@@ -85,7 +91,27 @@ interface SaleDao {
         totalAmount: Double,
         paidAmount: Double,
         dueAmount: Double,
+        isDeleted: Boolean,
+        deletedAt: Long?,
+        deleteReason: String?,
         synced: Boolean,
+        updatedAt: Long
+    )
+
+    @Query(
+        """
+        UPDATE sales
+        SET isDeleted = 1,
+            deletedAt = :deletedAt,
+            deleteReason = :reason,
+            updatedAt = :updatedAt
+        WHERE id = :saleId
+        """
+    )
+    suspend fun softDeleteSale(
+        saleId: Int,
+        reason: String,
+        deletedAt: Long,
         updatedAt: Long
     )
 
@@ -109,6 +135,7 @@ interface SaleDao {
     SELECT *
     FROM sales
     WHERE customerId = :customerId
+      AND isDeleted = 0
     ORDER BY timestamp DESC
 """)
     fun getSalesForCustomer(customerId: Int): Flow<List<SaleEntity>>
@@ -117,9 +144,18 @@ interface SaleDao {
     SELECT *
     FROM sales
     WHERE timestamp BETWEEN :from AND :to
+      AND isDeleted = 0
     ORDER BY id DESC
 """)
     fun getSalesBetween(from: Long, to: Long): Flow<List<SaleEntity>>
+
+    @Query("""
+    SELECT *
+    FROM sales
+    WHERE timestamp BETWEEN :from AND :to
+    ORDER BY id DESC
+""")
+    fun getSalesBetweenIncludingDeleted(from: Long, to: Long): Flow<List<SaleEntity>>
 
     @Query("""
     SELECT *
@@ -141,6 +177,7 @@ interface SaleDao {
     SELECT customerId, SUM(totalAmount - paidAmount) AS due
     FROM sales
     WHERE customerId != 0
+      AND isDeleted = 0
     GROUP BY customerId
 """)
     fun getCustomerDues(): Flow<List<CustomerDueRow>>

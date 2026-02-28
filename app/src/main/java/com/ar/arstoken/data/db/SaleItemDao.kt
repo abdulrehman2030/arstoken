@@ -14,13 +14,15 @@ interface SaleItemDao {
     @Query(
         """
         SELECT 
-            itemId,
-            itemName,
-            SUM(quantity) AS totalQty,
-            SUM(totalPrice) AS totalAmount
+            sale_items.itemId AS itemId,
+            sale_items.itemName AS itemName,
+            SUM(sale_items.quantity) AS totalQty,
+            SUM(sale_items.totalPrice) AS totalAmount
         FROM sale_items
-        WHERE timestamp BETWEEN :from AND :to
-        GROUP BY itemId, itemName
+        INNER JOIN sales ON sale_items.saleId = sales.id
+        WHERE sale_items.timestamp BETWEEN :from AND :to
+          AND sales.isDeleted = 0
+        GROUP BY sale_items.itemId, sale_items.itemName
         ORDER BY totalAmount DESC
         """
     )

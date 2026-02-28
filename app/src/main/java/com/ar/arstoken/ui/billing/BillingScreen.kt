@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
+import com.ar.arstoken.AdminScreen
 import com.ar.arstoken.model.Item
 import com.ar.arstoken.util.ThermalPrinterHelper
 import com.ar.arstoken.viewmodel.BillingViewModel
@@ -38,6 +39,9 @@ fun BillingScreen(
     businessName: String,
     businessPhone: String?,
     logoUrl: String?,
+    openMenuOnLoad: Boolean,
+    menuHighlightOnAutoOpen: AdminScreen,
+    onMenuOpened: () -> Unit,
     onOpenReports: () -> Unit,
     onOpenCustomers: () -> Unit,
     onOpenItems: () -> Unit,
@@ -118,6 +122,18 @@ fun BillingScreen(
         scope.launch { drawerState.close() }
     }
 
+    var selectedMenu by remember { mutableStateOf(AdminScreen.BILLING) }
+
+    LaunchedEffect(openMenuOnLoad) {
+        if (openMenuOnLoad) {
+            selectedMenu = menuHighlightOnAutoOpen
+            drawerState.open()
+            onMenuOpened()
+        }
+    }
+
+    val activeMenu = selectedMenu
+
     // 🔔 Show snackbar when coming back from Settings
     LaunchedEffect(showSavedMessage) {
         if (showSavedMessage) {
@@ -162,46 +178,118 @@ fun BillingScreen(
                             Spacer(Modifier.width(8.dp))
                         }
                         Text(
-                            businessName,
+                            businessName.ifBlank { "ARS Token" },
                             style = MaterialTheme.typography.titleMedium
                         )
                     }
                 }
 
+                Text(
+                    text = businessPhone ?: "",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+                Text(
+                    text = "Admin Center",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                Text(
+                    text = "Sales",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
                 NavigationDrawerItem(
-                    label = { Text("Customers") },
-                    selected = false,
+                    label = {
+                        Column {
+                            Text("New Bill")
+                            Text(
+                                "Create and print bills",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    },
+                    selected = activeMenu == AdminScreen.BILLING,
                     onClick = {
                         scope.launch { drawerState.close() }
-                        onOpenCustomers()
                     }
                 )
-
                 NavigationDrawerItem(
-                    label = { Text("Items") },
-                    selected = false,
+                    label = {
+                        Column {
+                            Text("Reports")
+                            Text(
+                                "View bills and history",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    },
+                    selected = activeMenu == AdminScreen.REPORTS,
                     onClick = {
                         scope.launch { drawerState.close() }
-                        onOpenItems()
-                    }
-                )
-
-                NavigationDrawerItem(
-                    label = { Text("Reports") },
-                    selected = false,
-                    onClick = {
-                        scope.launch { drawerState.close() }
+                        selectedMenu = AdminScreen.REPORTS
                         onOpenReports()
                     }
                 )
 
-                // ⭐ THIS IS YOUR SETTINGS ENTRY
                 NavigationDrawerItem(
-                    label = { Text("Settings") },
-                    selected = false,
+                    label = {
+                        Column {
+                            Text("Customers")
+                            Text(
+                                "Ledger and due tracking",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    },
+                    selected = activeMenu == AdminScreen.CUSTOMERS,
                     onClick = {
                         scope.launch { drawerState.close() }
-                        onOpenSettings()   // 👈 HERE
+                        selectedMenu = AdminScreen.CUSTOMERS
+                        onOpenCustomers()
+                    }
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                NavigationDrawerItem(
+                    label = {
+                        Column {
+                            Text("Items")
+                            Text(
+                                "Manage products and prices",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    },
+                    selected = activeMenu == AdminScreen.ITEMS,
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        selectedMenu = AdminScreen.ITEMS
+                        onOpenItems()
+                    }
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                NavigationDrawerItem(
+                    label = {
+                        Column {
+                            Text("Settings")
+                            Text(
+                                "Business, print and backup settings",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    },
+                    selected = activeMenu == AdminScreen.SETTINGS_LANDING,
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        selectedMenu = AdminScreen.SETTINGS_LANDING
+                        onOpenSettings()
                     }
                 )
 
@@ -243,6 +331,7 @@ fun BillingScreen(
                     ),
                     navigationIcon = {
                         IconButton(onClick = {
+                            selectedMenu = AdminScreen.BILLING
                             scope.launch { drawerState.open() }
                         }) {
                             Icon(Icons.Default.MoreVert, contentDescription = "Menu")

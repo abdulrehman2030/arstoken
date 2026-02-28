@@ -19,6 +19,9 @@ data class SaleEntity(
     val totalAmount: Double,
     val paidAmount: Double,
     val dueAmount: Double,
+    val isDeleted: Boolean = false,
+    val deletedAt: Long? = null,
+    val deleteReason: String? = null,
 
     val synced: Boolean = false,   // 🔑 cloud-ready
     val updatedAt: Long = 0

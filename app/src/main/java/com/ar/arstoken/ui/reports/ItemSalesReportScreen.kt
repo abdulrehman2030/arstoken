@@ -8,8 +8,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -30,6 +34,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -55,6 +60,8 @@ fun ItemSalesReportScreen(
     businessPhone: String?
 ) {
     val sales by viewModel.sales.collectAsState<List<SaleEntity>>()
+    val activeCount = remember(sales) { sales.count { !it.isDeleted } }
+    val deletedCount = remember(sales) { sales.count { it.isDeleted } }
     val formatter = rememberDateFormatter()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -125,20 +132,64 @@ fun ItemSalesReportScreen(
             }
 
             Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Active Bills: $activeCount",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = "Deleted: $deletedCount",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+
+            Spacer(Modifier.height(8.dp))
 
             LazyColumn {
                 items(sales) { sale ->
+                    val isDeleted = sale.isDeleted
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 6.dp)
                             .clickable { onSaleSelected(sale.id) },
+                        shape = RoundedCornerShape(12.dp),
+                        border = if (isDeleted) {
+                            BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.35f))
+                        } else {
+                            null
+                        },
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
+                            containerColor = if (isDeleted) {
+                                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f)
+                            } else {
+                                MaterialTheme.colorScheme.surface
+                            }
                         )
                     ) {
                         Column(Modifier.padding(12.dp)) {
-                            Text("Bill #${sale.id}", fontWeight = FontWeight.Bold)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Bill #${sale.id}", fontWeight = FontWeight.Bold)
+                                if (isDeleted) {
+                                    AssistChip(
+                                        onClick = {},
+                                        enabled = false,
+                                        label = { Text("DELETED") },
+                                        colors = AssistChipDefaults.assistChipColors(
+                                            disabledContainerColor = MaterialTheme.colorScheme.error,
+                                            disabledLabelColor = MaterialTheme.colorScheme.onError
+                                        )
+                                    )
+                                }
+                            }
                             Text(
                                 text = formatter.format(Date(sale.timestamp)),
                                 style = MaterialTheme.typography.bodySmall,
@@ -149,6 +200,20 @@ fun ItemSalesReportScreen(
                             Text("Total: ₹${formatAmount(sale.totalAmount)}")
                             Text("Paid: ₹${formatAmount(sale.paidAmount)}")
                             Text("Due: ₹${formatAmount(sale.dueAmount)}")
+                            if (isDeleted) {
+                                sale.deletedAt?.let {
+                                    Text(
+                                        text = "Deleted On: ${formatter.format(Date(it))}",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                                Text(
+                                    text = "Reason: ${sale.deleteReason ?: "-"}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                             Spacer(Modifier.height(8.dp))
                             TextButton(
                                 onClick = {

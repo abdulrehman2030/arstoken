@@ -75,6 +75,10 @@ class MainActivity : ComponentActivity() {
                 }
                 var showSavedMessage by remember { mutableStateOf(false) }
                 var lastLoginRefreshUid by rememberSaveable { mutableStateOf<String?>(null) }
+                var openDrawerOnBilling by rememberSaveable { mutableStateOf(false) }
+                var drawerHighlightOnOpen by rememberSaveable {
+                    mutableStateOf(AdminScreen.BILLING)
+                }
 
                 // ----------------------------
                 // Database (single instance)
@@ -210,16 +214,23 @@ class MainActivity : ComponentActivity() {
                             businessName = businessName ?: "ARS Token",
                             businessPhone = businessPhone,
                             logoUrl = logoUrl,
+                            openMenuOnLoad = openDrawerOnBilling,
+                            menuHighlightOnAutoOpen = drawerHighlightOnOpen,
+                            onMenuOpened = { openDrawerOnBilling = false },
                             onOpenReports = {
+                                drawerHighlightOnOpen = AdminScreen.REPORTS
                                 currentScreen = AdminScreen.REPORTS
                             },
                             onOpenCustomers = {
+                                drawerHighlightOnOpen = AdminScreen.CUSTOMERS
                                 currentScreen = AdminScreen.CUSTOMERS
                             },
                             onOpenItems = {
+                                drawerHighlightOnOpen = AdminScreen.ITEMS
                                 currentScreen = AdminScreen.ITEMS
                             },
                             onOpenSettings = {          // 👈 ADD
+                                drawerHighlightOnOpen = AdminScreen.SETTINGS_LANDING
                                 currentScreen = AdminScreen.SETTINGS_LANDING
                             },
                             showSavedMessage = showSavedMessage,
@@ -235,7 +246,9 @@ class MainActivity : ComponentActivity() {
                         ItemSalesReportScreen(
                             viewModel = vm,
                             onBack = {
-                                currentScreen = AdminScreen.BILLING   // 👈 THIS WAS MISSING
+                                drawerHighlightOnOpen = AdminScreen.REPORTS
+                                openDrawerOnBilling = true
+                                currentScreen = AdminScreen.BILLING
                             },
                             onSaleSelected = { saleId ->
                                 selectedSaleId = saleId
@@ -257,6 +270,9 @@ class MainActivity : ComponentActivity() {
                                 settings = settingsState ?: StoreSettingsEntity(storeName = "My Store", phone = ""),
                                 businessName = businessName,
                                 businessPhone = businessPhone,
+                                onDeleted = {
+                                    currentScreen = AdminScreen.REPORTS
+                                },
                                 onBack = {
                                     currentScreen = AdminScreen.REPORTS
                                 }
@@ -276,7 +292,11 @@ class MainActivity : ComponentActivity() {
                                 selectedCustomerPhone = it.phone
                                 currentScreen = AdminScreen.CUSTOMER_LEDGER
                             },
-                            onBack = { currentScreen = AdminScreen.BILLING }
+                            onBack = {
+                                drawerHighlightOnOpen = AdminScreen.CUSTOMERS
+                                openDrawerOnBilling = true
+                                currentScreen = AdminScreen.BILLING
+                            }
                         )
                     }
 
@@ -317,6 +337,8 @@ class MainActivity : ComponentActivity() {
                                 currentScreen = AdminScreen.CATEGORY_CREATE
                             },
                             onBack = {
+                                drawerHighlightOnOpen = AdminScreen.ITEMS
+                                openDrawerOnBilling = true
                                 currentScreen = AdminScreen.BILLING
                             }
                         )
@@ -324,6 +346,8 @@ class MainActivity : ComponentActivity() {
                     AdminScreen.SETTINGS_LANDING -> {
                         SettingsLandingScreen(
                             onBack = {
+                                drawerHighlightOnOpen = AdminScreen.SETTINGS_LANDING
+                                openDrawerOnBilling = true
                                 currentScreen = AdminScreen.BILLING
                             },
                             onOpenBusinessProfile = {
