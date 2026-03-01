@@ -2,6 +2,7 @@ package com.ar.arstoken.data.repository
 
 import com.ar.arstoken.data.ReportRepository
 import com.ar.arstoken.data.db.AppDatabase
+import com.ar.arstoken.data.db.ItemSalesRow
 import com.ar.arstoken.data.db.SaleEntity
 import com.ar.arstoken.model.ReportSummary
 import kotlinx.coroutines.flow.Flow
@@ -36,5 +37,12 @@ class RoomReportRepository(
         to: Long
     ): Flow<List<SaleEntity>> {
         return saleDao.getSalesBetweenIncludingDeleted(from, to)
+    }
+
+    override fun getItemSales(
+        from: Long,
+        to: Long
+    ): Flow<List<ItemSalesRow>> {
+        return db.saleItemDao().getItemSales(from, to)
     }
 }

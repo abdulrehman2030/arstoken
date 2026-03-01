@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ar.arstoken.data.ReportRepository
 import com.ar.arstoken.data.db.AppDatabase
+import com.ar.arstoken.data.db.ItemSalesRow
 import com.ar.arstoken.data.db.SaleEntity
 import com.ar.arstoken.data.repository.SettingsRepository
 import com.ar.arstoken.util.formatReceipt
@@ -21,6 +22,7 @@ import com.ar.arstoken.util.startOfMonth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
+import java.util.concurrent.TimeUnit
 
 
 class ItemSalesViewModel(
@@ -29,8 +31,18 @@ class ItemSalesViewModel(
     private val settingsRepository: SettingsRepository
 ) : ViewModel() {
 
+    enum class ItemSummarySort {
+        AMOUNT_DESC,
+        QTY_DESC,
+        NAME_ASC
+    }
+
     private val fromDate = MutableStateFlow(startOfToday())
     private val toDate = MutableStateFlow(endOfToday())
+    private val itemSort = MutableStateFlow(ItemSummarySort.AMOUNT_DESC)
+
+    val fromDateMillis = fromDate
+    val toDateMillis = toDate
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val sales = combine(fromDate, toDate) { from, to ->
@@ -38,6 +50,19 @@ class ItemSalesViewModel(
     }.flatMapLatest { (from, to) ->
         reportRepository.getSales(from, to).map { list ->
             list.sortedByDescending { it.id }
+        }
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        emptyList()
+    )
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val itemSales = combine(fromDate, toDate, itemSort) { from, to, sort ->
+        Triple(from, to, sort)
+    }.flatMapLatest { (from, to, sort) ->
+        reportRepository.getItemSales(from, to).map { list ->
+            sortItems(list, sort)
         }
     }.stateIn(
         viewModelScope,
@@ -59,6 +84,31 @@ class ItemSalesViewModel(
         toDate.value = endOfToday()
     }
 
+    fun setLast7Days() {
+        val now = System.currentTimeMillis()
+        fromDate.value = startOfDayMillis(now - TimeUnit.DAYS.toMillis(6))
+        toDate.value = endOfToday()
+    }
+
+    fun setLast30Days() {
+        val now = System.currentTimeMillis()
+        fromDate.value = startOfDayMillis(now - TimeUnit.DAYS.toMillis(29))
+        toDate.value = endOfToday()
+    }
+
+    fun setDateRange(from: Long, to: Long) {
+        if (from <= to) {
+            fromDate.value = from
+            toDate.value = to
+        }
+    }
+
+    fun setItemSummarySort(sort: ItemSummarySort) {
+        itemSort.value = sort
+    }
+
+    val itemSummarySort = itemSort
+
     suspend fun buildReceipt(
         saleId: Int,
         businessName: String?,
@@ -77,4 +127,20 @@ class ItemSalesViewModel(
                 headerNote = "TOKEN COPY"
             )
         }
+
+    private fun sortItems(
+        rows: List<ItemSalesRow>,
+        sort: ItemSummarySort
+    ): List<ItemSalesRow> {
+        return when (sort) {
+            ItemSummarySort.AMOUNT_DESC -> rows.sortedByDescending { it.totalAmount }
+            ItemSummarySort.QTY_DESC -> rows.sortedByDescending { it.totalQty }
+            ItemSummarySort.NAME_ASC -> rows.sortedBy { it.itemName.lowercase() }
+        }
+    }
+
+    private fun startOfDayMillis(time: Long): Long {
+        val day = TimeUnit.DAYS.toMillis(1)
+        return (time / day) * day
+    }
 }

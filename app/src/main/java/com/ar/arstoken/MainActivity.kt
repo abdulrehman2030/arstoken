@@ -198,13 +198,6 @@ class MainActivity : ComponentActivity() {
                 val businessName = profileState?.value?.businessName?.takeIf { it.isNotBlank() }
                 val businessPhone = profileState?.value?.phone?.takeIf { it.isNotBlank() }
                 val logoUrl = profileState?.value?.logoUrl
-                val hasProfile = profileState?.value != null
-
-                LaunchedEffect(hasProfile, isLoggedIn) {
-                    if (isLoggedIn && hasProfile == false && currentScreen != AdminScreen.BUSINESS_PROFILE) {
-                        currentScreen = AdminScreen.BUSINESS_PROFILE
-                    }
-                }
 
                 when (currentScreen) {
 

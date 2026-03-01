@@ -16,13 +16,15 @@ interface SaleItemDao {
         SELECT 
             sale_items.itemId AS itemId,
             sale_items.itemName AS itemName,
+            items.category AS itemCategory,
             SUM(sale_items.quantity) AS totalQty,
             SUM(sale_items.totalPrice) AS totalAmount
         FROM sale_items
         INNER JOIN sales ON sale_items.saleId = sales.id
+        LEFT JOIN items ON sale_items.itemId = items.id
         WHERE sale_items.timestamp BETWEEN :from AND :to
           AND sales.isDeleted = 0
-        GROUP BY sale_items.itemId, sale_items.itemName
+        GROUP BY sale_items.itemId, sale_items.itemName, items.category
         ORDER BY totalAmount DESC
         """
     )
