@@ -50,6 +50,7 @@ import com.ar.arstoken.ui.items.ItemsScreen
 import com.ar.arstoken.ui.reports.ItemSalesReportScreen
 import com.ar.arstoken.ui.reports.BillDetailScreen
 import com.ar.arstoken.ui.settings.BusinessProfileScreen
+import com.ar.arstoken.ui.settings.BackupSettingsScreen
 import com.ar.arstoken.ui.settings.PrintSettingsScreen
 import com.ar.arstoken.ui.settings.SettingsLandingScreen
 import com.ar.arstoken.ui.theme.ARSTokenTheme
@@ -78,6 +79,7 @@ enum class AdminScreen {
     CATEGORY_CREATE,
     CUSTOMER_LEDGER,
     SETTINGS_LANDING,
+    BACKUP_SETTINGS,
     PRINT_SETTINGS,
     BUSINESS_PROFILE,
     BILL_DETAIL
@@ -301,8 +303,12 @@ class MainActivity : ComponentActivity() {
                     subscriptionEndAtMs = subscriptionEndAtMs
                 )
 
-                LaunchedEffect(isLoggedIn, uid) {
-                    if (!isLoggedIn || uid == null || lastLoginRefreshUid == uid) return@LaunchedEffect
+                val syncEnabled = settingsState?.syncEnabled ?: true
+                val syncHour = settingsState?.syncHour ?: 22
+                val syncMinute = settingsState?.syncMinute ?: 0
+
+                LaunchedEffect(isLoggedIn, uid, syncEnabled) {
+                    if (!isLoggedIn || uid == null || !syncEnabled || lastLoginRefreshUid == uid) return@LaunchedEffect
                     try {
                         syncManager.refreshFromCloudOnLogin(uid)
                         lastLoginRefreshUid = uid
@@ -311,9 +317,6 @@ class MainActivity : ComponentActivity() {
                 }
                 profileViewModel?.startSync { }
 
-                val syncEnabled = settingsState?.syncEnabled ?: true
-                val syncHour = settingsState?.syncHour ?: 22
-                val syncMinute = settingsState?.syncMinute ?: 0
                 LaunchedEffect(isLoggedIn, syncEnabled, syncHour, syncMinute, uid) {
                     if (!isLoggedIn || !syncEnabled || uid == null) return@LaunchedEffect
                     while (isActive) {
@@ -493,6 +496,9 @@ class MainActivity : ComponentActivity() {
                             onOpenPrintSettings = {
                                 currentScreen = AdminScreen.PRINT_SETTINGS
                             },
+                            onOpenBackupSettings = {
+                                currentScreen = AdminScreen.BACKUP_SETTINGS
+                            },
                             onSignOut = {
                                 scope.launch {
                                     try {
@@ -505,9 +511,17 @@ class MainActivity : ComponentActivity() {
                                 }
                             },
                             settings = settingsState,
-                            subscriptionLabel = subscriptionLabel,
+                            subscriptionLabel = subscriptionLabel
+                        )
+                    }
+                    AdminScreen.BACKUP_SETTINGS -> {
+                        BackupSettingsScreen(
+                            settings = settingsState,
+                            onBack = {
+                                currentScreen = AdminScreen.SETTINGS_LANDING
+                            },
                             onSyncNow = {
-                                if (uid != null) {
+                                if (uid != null && (settingsState?.syncEnabled == true)) {
                                     scope.launch {
                                         try {
                                             syncManager.syncAll(uid)
@@ -516,14 +530,24 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             },
-                            onSaveSyncTime = { hour, minute ->
+                            onSave = { enabled, hour, minute ->
                                 val current = settingsState ?: StoreSettingsEntity(storeName = "My Store", phone = "")
                                 settingsViewModel.save(
                                     current.copy(
+                                        syncEnabled = enabled,
                                         syncHour = hour,
                                         syncMinute = minute
                                     )
                                 )
+                                if (uid != null) {
+                                    scope.launch {
+                                        try {
+                                            syncManager.syncSettingsOnly(uid)
+                                        } catch (_: Exception) {
+                                            // Keep local setting if offline; cloud will catch up later.
+                                        }
+                                    }
+                                }
                             }
                         )
                     }
@@ -698,17 +722,24 @@ private fun buildSubscriptionLabel(
     subscriptionEndAtMs: Long?
 ): String {
     val df = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
-    val end = when (planStatus) {
-        "active" -> subscriptionEndAtMs
-        "trial" -> trialEndAtMs
-        else -> trialEndAtMs ?: subscriptionEndAtMs
+    return when (planStatus) {
+        "active" -> {
+            val endText = subscriptionEndAtMs?.let { df.format(Date(it)) } ?: "Not available"
+            "Subscription ends on $endText"
+        }
+        "trial" -> {
+            val endText = trialEndAtMs?.let { df.format(Date(it)) } ?: "Not available"
+            "Trial ends on $endText"
+        }
+        "expired" -> {
+            val endedAt = subscriptionEndAtMs ?: trialEndAtMs
+            val endedText = endedAt?.let { df.format(Date(it)) } ?: "Not available"
+            "Plan ended on $endedText"
+        }
+        else -> {
+            val endText = (subscriptionEndAtMs ?: trialEndAtMs)
+                ?.let { df.format(Date(it)) } ?: "Not available"
+            "Plan ends on $endText"
+        }
     }
-    val endText = end?.let { df.format(Date(it)) } ?: "Not available"
-    val planText = when (planStatus) {
-        "active" -> "Active plan"
-        "trial" -> "Trial"
-        "expired" -> "Expired"
-        else -> "Plan"
-    }
-    return "$planText ends on $endText"
 }

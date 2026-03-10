@@ -33,6 +33,10 @@ class CloudSyncManager(
         syncSettings(uid)
     }
 
+    suspend fun syncSettingsOnly(uid: String) = withContext(Dispatchers.IO) {
+        syncSettings(uid)
+    }
+
     private fun base(uid: String) =
         firestore.collection("users").document(uid)
 
