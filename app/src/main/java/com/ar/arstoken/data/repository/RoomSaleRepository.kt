@@ -3,6 +3,7 @@ package com.ar.arstoken.data.repository
 import com.ar.arstoken.data.SaleRepository
 import com.ar.arstoken.data.db.*
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 
 
 class RoomSaleRepository(
@@ -30,6 +31,10 @@ class RoomSaleRepository(
 
     override fun getCustomerDues(): Flow<List<CustomerDueRow>> {
         return db.saleDao().getCustomerDues()
+    }
+
+    override suspend fun getSaleItemsForSale(saleId: Int): List<SaleItemEntity> {
+        return db.saleItemDao().getItemsForSale(saleId).first()
     }
 
 }

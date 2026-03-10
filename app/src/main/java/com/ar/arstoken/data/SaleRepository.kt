@@ -14,5 +14,6 @@ interface SaleRepository {
 
     fun getSalesForCustomer(customerId: Int): Flow<List<SaleEntity>>
     fun getCustomerDues(): Flow<List<CustomerDueRow>>
+    suspend fun getSaleItemsForSale(saleId: Int): List<SaleItemEntity>
 
 }

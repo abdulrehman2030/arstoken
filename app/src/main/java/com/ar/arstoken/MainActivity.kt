@@ -390,6 +390,9 @@ class MainActivity : ComponentActivity() {
                                 openDrawerOnBilling = true
                                 currentScreen = AdminScreen.BILLING
                             },
+                            onHome = {
+                                currentScreen = AdminScreen.BILLING
+                            },
                             onSaleSelected = { saleId ->
                                 selectedSaleId = saleId
                                 currentScreen = AdminScreen.BILL_DETAIL
@@ -415,6 +418,9 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onBack = {
                                     currentScreen = AdminScreen.REPORTS
+                                },
+                                onHome = {
+                                    currentScreen = AdminScreen.BILLING
                                 }
                             )
                         } else {
@@ -435,6 +441,9 @@ class MainActivity : ComponentActivity() {
                             onBack = {
                                 drawerHighlightOnOpen = AdminScreen.CUSTOMERS
                                 openDrawerOnBilling = true
+                                currentScreen = AdminScreen.BILLING
+                            },
+                            onHome = {
                                 currentScreen = AdminScreen.BILLING
                             }
                         )
@@ -462,6 +471,9 @@ class MainActivity : ComponentActivity() {
                                 viewModel = ledgerVm,
                                 onBack = {
                                     currentScreen = AdminScreen.CUSTOMERS
+                                },
+                                onHome = {
+                                    currentScreen = AdminScreen.BILLING
                                 }
                             )
                         }
@@ -480,6 +492,9 @@ class MainActivity : ComponentActivity() {
                                 drawerHighlightOnOpen = AdminScreen.ITEMS
                                 openDrawerOnBilling = true
                                 currentScreen = AdminScreen.BILLING
+                            },
+                            onHome = {
+                                currentScreen = AdminScreen.BILLING
                             }
                         )
                     }
@@ -488,6 +503,9 @@ class MainActivity : ComponentActivity() {
                             onBack = {
                                 drawerHighlightOnOpen = AdminScreen.SETTINGS_LANDING
                                 openDrawerOnBilling = true
+                                currentScreen = AdminScreen.BILLING
+                            },
+                            onHome = {
                                 currentScreen = AdminScreen.BILLING
                             },
                             onOpenBusinessProfile = {
@@ -519,6 +537,9 @@ class MainActivity : ComponentActivity() {
                             settings = settingsState,
                             onBack = {
                                 currentScreen = AdminScreen.SETTINGS_LANDING
+                            },
+                            onHome = {
+                                currentScreen = AdminScreen.BILLING
                             },
                             onSyncNow = {
                                 if (uid != null && (settingsState?.syncEnabled == true)) {
@@ -557,6 +578,9 @@ class MainActivity : ComponentActivity() {
                             onBack = {
                                 currentScreen = AdminScreen.SETTINGS_LANDING
                             },
+                            onHome = {
+                                currentScreen = AdminScreen.BILLING
+                            },
                             onSaved = {
                                 showSavedMessage = true
                                 currentScreen = AdminScreen.BILLING
@@ -572,6 +596,9 @@ class MainActivity : ComponentActivity() {
                                 onBack = {
                                     currentScreen = AdminScreen.SETTINGS_LANDING
                                 },
+                                onHome = {
+                                    currentScreen = AdminScreen.BILLING
+                                },
                                 onSaved = {
                                     currentScreen = AdminScreen.BILLING
                                 }
@@ -585,6 +612,9 @@ class MainActivity : ComponentActivity() {
                             viewModel = categoryViewModel,
                             onBack = {
                                 currentScreen = AdminScreen.ITEMS
+                            },
+                            onHome = {
+                                currentScreen = AdminScreen.BILLING
                             },
                             onCategoryAdded = { categoryName ->
                                 itemViewModel.updateDraftCategory(categoryName)

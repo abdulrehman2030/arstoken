@@ -1,6 +1,7 @@
 package com.ar.arstoken.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -8,7 +9,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -28,8 +29,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.ar.arstoken.ui.components.BottomLeftBackButton
 import com.ar.arstoken.viewmodel.BusinessProfileViewModel
 import androidx.activity.compose.BackHandler
 import kotlinx.coroutines.delay
@@ -41,6 +44,7 @@ fun BusinessProfileScreen(
     viewModel: BusinessProfileViewModel,
     phoneNumber: String?,
     onBack: () -> Unit,
+    onHome: () -> Unit,
     onSaved: () -> Unit
 ) {
     val profile by viewModel.profile.collectAsState()
@@ -61,10 +65,10 @@ fun BusinessProfileScreen(
             TopAppBar(
                 title = { Text("Business Profile") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = onHome) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            imageVector = Icons.Filled.Home,
+                            contentDescription = "Home"
                         )
                     }
                 }
@@ -72,65 +76,74 @@ fun BusinessProfileScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            val fieldModifier = Modifier.widthIn(min = 280.dp, max = 520.dp)
-
-            OutlinedTextField(
-                value = businessName,
-                onValueChange = { businessName = it },
-                label = { Text("Business name") },
-                singleLine = true,
-                modifier = fieldModifier
-            )
-
-            OutlinedTextField(
-                value = phoneNumber.orEmpty(),
-                onValueChange = {},
-                label = { Text("Phone number") },
-                singleLine = true,
-                enabled = false,
-                modifier = fieldModifier
-            )
-
-            TextButton(
-                onClick = {
-                    errorMessage = null
-                    if (businessName.isBlank()) {
-                        errorMessage = "Business name is required."
-                        return@TextButton
-                    }
-                    viewModel.saveProfile(
-                        businessName = businessName,
-                        logoUrl = null,
-                        phone = phoneNumber,
-                        onError = { message -> errorMessage = message }
-                    )
-                    viewModel.startSync { }
-                    scope.launch {
-                        snackbarHostState.showSnackbar("Business name saved")
-                    }
-                    scope.launch {
-                        delay(1400)
-                        onSaved()
-                    }
-                },
-                modifier = Modifier.widthIn(max = 200.dp)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text("Save")
-            }
+                val fieldModifier = Modifier.widthIn(min = 280.dp, max = 520.dp)
 
-            if (!errorMessage.isNullOrBlank()) {
-                Text(
-                    text = errorMessage.orEmpty(),
-                    color = MaterialTheme.colorScheme.error
+                OutlinedTextField(
+                    value = businessName,
+                    onValueChange = { businessName = it },
+                    label = { Text("Business name") },
+                    singleLine = true,
+                    modifier = fieldModifier
                 )
+
+                OutlinedTextField(
+                    value = phoneNumber.orEmpty(),
+                    onValueChange = {},
+                    label = { Text("Phone number") },
+                    singleLine = true,
+                    enabled = false,
+                    modifier = fieldModifier
+                )
+
+                TextButton(
+                    onClick = {
+                        errorMessage = null
+                        if (businessName.isBlank()) {
+                            errorMessage = "Business name is required."
+                            return@TextButton
+                        }
+                        viewModel.saveProfile(
+                            businessName = businessName,
+                            logoUrl = null,
+                            phone = phoneNumber,
+                            onError = { message -> errorMessage = message }
+                        )
+                        viewModel.startSync { }
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Business name saved")
+                        }
+                        scope.launch {
+                            delay(1400)
+                            onSaved()
+                        }
+                    },
+                    modifier = Modifier.widthIn(max = 200.dp)
+                ) {
+                    Text("Save")
+                }
+
+                if (!errorMessage.isNullOrBlank()) {
+                    Text(
+                        text = errorMessage.orEmpty(),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
             }
+            BottomLeftBackButton(
+                onBack = onBack,
+                modifier = Modifier.align(Alignment.BottomStart)
+            )
         }
     }
 

@@ -8,7 +8,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -24,18 +25,19 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import com.ar.arstoken.model.SaleType
-import com.ar.arstoken.util.salesToCsv
-import com.ar.arstoken.util.shareText
+import com.ar.arstoken.util.exportCustomerSalesPdf
+import com.ar.arstoken.util.shareFileToWhatsApp
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.activity.compose.BackHandler
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.ar.arstoken.util.formatAmount
+import com.ar.arstoken.ui.components.BottomLeftBackButton
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,7 +47,8 @@ fun CustomerLedgerScreen(
     customerPhone: String,
     businessName: String?,
     viewModel: CustomerLedgerViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onHome: () -> Unit
 ) {
     val buttonTextSize = 10.sp
 
@@ -53,8 +56,11 @@ fun CustomerLedgerScreen(
     val sales by viewModel.sales.collectAsState<List<SaleEntity>>()
 
     // 2️⃣ Date filter state
-    var fromDate by remember { mutableStateOf<Long?>(null) }
-    var toDate by remember { mutableStateOf<Long?>(null) }
+    val now = remember { System.currentTimeMillis() }
+    val defaultFrom = remember(now) { startOfDay(now - 6L * 24L * 60L * 60L * 1000L) }
+    val defaultTo = remember(now) { endOfDay(now) }
+    var fromDate by remember { mutableStateOf<Long?>(defaultFrom) }
+    var toDate by remember { mutableStateOf<Long?>(defaultTo) }
     var selectedMode by remember { mutableStateOf<SaleType?>(null) }
     var showFilterScreen by remember { mutableStateOf(false) }
 
@@ -101,22 +107,26 @@ fun CustomerLedgerScreen(
             TopAppBar(
                 title = { Text(customerName) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = onHome) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            imageVector = Icons.Filled.Home,
+                            contentDescription = "Home"
                         )
                     }
                 }
             )
         }
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+            ) {
             val totalDue = ledgerRows.lastOrNull()?.second ?: 0.0
 
             Row(
@@ -142,45 +152,37 @@ fun CustomerLedgerScreen(
                     Text("Receive Payment", fontSize = buttonTextSize)
                 }
 
-                if (customerPhone.isNotBlank()) {
-                    Button(
-                        modifier = Modifier.weight(1f),
-                        onClick = {
-                            val totalDue = ledgerRows.lastOrNull()?.second ?: 0.0
-
-                            val message = """
-                                Hi $customerName,
-                                Your pending balance at ${businessName?.ifBlank { "ARS Store" } ?: "ARS Store"} is ₹${formatAmount(totalDue)}.
-                                Please clear it at your convenience.
-                            """.trimIndent()
-
-                            openWhatsApp(
+                IconButton(
+                    onClick = {
+                        val safeFrom = fromDate ?: defaultFrom
+                        val safeTo = toDate ?: defaultTo
+                        scope.launch {
+                            val file = withContext(Dispatchers.IO) {
+                                exportCustomerSalesPdf(
+                                    context = context,
+                                    storeName = businessName,
+                                    customerName = customerName,
+                                    fromDate = safeFrom,
+                                    toDate = safeTo,
+                                    sales = filteredSales,
+                                    saleItemsBySaleId = filteredSales.associate { sale ->
+                                        sale.id to viewModel.getSaleItemsForSale(sale.id)
+                                    }
+                                )
+                            }
+                            shareFileToWhatsApp(
                                 context = context,
-                                phone = customerPhone,
-                                message = message
+                                file = file,
+                                mimeType = "application/pdf",
+                                chooserTitle = "Share Customer Ledger"
                             )
                         }
-                    ) {
-                        Text("WhatsApp", fontSize = buttonTextSize)
-                    }
-                }
-
-                Button(
-                    modifier = Modifier.weight(1f),
-                    onClick = {
-                        val csv = salesToCsv(
-                            customerName = customerName,
-                            sales = filteredSales
-                        )
-
-                        shareText(
-                            context = context,
-                            text = csv,
-                            title = "Ledger - $customerName"
-                        )
                     }
                 ) {
-                    Text("Export", fontSize = buttonTextSize)
+                    Icon(
+                        imageVector = Icons.Default.Share,
+                        contentDescription = "Share PDF on WhatsApp"
+                    )
                 }
             }
 
@@ -205,8 +207,8 @@ fun CustomerLedgerScreen(
                 }
 
                 OutlinedButton(onClick = {
-                    fromDate = null
-                    toDate = null
+                    fromDate = defaultFrom
+                    toDate = defaultTo
                     selectedMode = null
                 }) {
                     Text("Clear", fontSize = buttonTextSize)
@@ -251,6 +253,11 @@ fun CustomerLedgerScreen(
                     HorizontalDivider()
                 }
             }
+            }
+            BottomLeftBackButton(
+                onBack = onBack,
+                modifier = Modifier.align(Alignment.BottomStart)
+            )
         }
     }
     BackHandler { onBack() }
@@ -553,16 +560,4 @@ private fun computeRunningBalances(
         balance += (sale.totalAmount - sale.paidAmount)
         sale to balance
     }
-}
-
-fun openWhatsApp(
-    context: android.content.Context,
-    phone: String,
-    message: String
-) {
-    val url = "https://wa.me/91$phone?text=${Uri.encode(message)}"
-    val intent = Intent(Intent.ACTION_VIEW).apply {
-        data = Uri.parse(url)
-    }
-    context.startActivity(intent)
 }

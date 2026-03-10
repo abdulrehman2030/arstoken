@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.ar.arstoken.data.SaleRepository
 import com.ar.arstoken.data.db.CreditLedgerEntity
 import com.ar.arstoken.data.db.SaleEntity
+import com.ar.arstoken.data.db.SaleItemEntity
 import com.ar.arstoken.model.SaleType
 import com.ar.arstoken.util.newCloudId
 import com.ar.arstoken.util.nowMs
@@ -68,6 +69,10 @@ class CustomerLedgerViewModel(
 
     fun getCurrentDue(): Double {
         return sales.value.sumOf { it.totalAmount - it.paidAmount }
+    }
+
+    suspend fun getSaleItemsForSale(saleId: Int): List<SaleItemEntity> {
+        return saleRepository.getSaleItemsForSale(saleId)
     }
 
 }

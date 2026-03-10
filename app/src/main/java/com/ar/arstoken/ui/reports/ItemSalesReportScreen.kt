@@ -31,6 +31,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Print
@@ -98,6 +99,7 @@ private enum class ReportTab {
 fun ItemSalesReportScreen(
     viewModel: ItemSalesViewModel,
     onBack: () -> Unit,
+    onHome: () -> Unit,
     onSaleSelected: (Int) -> Unit,
     settings: StoreSettingsEntity,
     businessName: String?,
@@ -200,6 +202,15 @@ fun ItemSalesReportScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back"
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onHome) {
+                        Icon(
+                            imageVector = Icons.Filled.Home,
+                            contentDescription = "Home",
+                            tint = topBarContent
                         )
                     }
                 }

@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,13 +16,15 @@ import androidx.compose.ui.text.input.KeyboardType
 import com.ar.arstoken.data.db.ItemEntity
 import com.ar.arstoken.viewmodel.ItemViewModel
 import androidx.activity.compose.BackHandler
+import com.ar.arstoken.ui.components.BottomLeftBackButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItemsScreen(
     viewModel: ItemViewModel,
     onAddCategory: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onHome: () -> Unit
 ) {
     val items by viewModel.items.collectAsState()
     val categories by viewModel.categories.collectAsState()
@@ -42,22 +44,26 @@ fun ItemsScreen(
             TopAppBar(
                 title = { Text("Items") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = onHome) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            imageVector = Icons.Filled.Home,
+                            contentDescription = "Home"
                         )
                     }
                 }
             )
         }
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+            ) {
         val fieldModifier = Modifier
             .widthIn(max = 520.dp)
             .heightIn(min = 48.dp)
@@ -202,6 +208,11 @@ fun ItemsScreen(
                     }
                 }
             }
+            }
+            BottomLeftBackButton(
+                onBack = onBack,
+                modifier = Modifier.align(Alignment.BottomStart)
+            )
         }
     }
     BackHandler { onBack() }

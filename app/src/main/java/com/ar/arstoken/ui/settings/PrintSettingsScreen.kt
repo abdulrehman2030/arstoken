@@ -1,6 +1,7 @@
 package com.ar.arstoken.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,7 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -43,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.ar.arstoken.data.db.StoreSettingsEntity
+import com.ar.arstoken.ui.components.BottomLeftBackButton
 import com.ar.arstoken.viewmodel.SettingsViewModel
 import androidx.activity.compose.BackHandler
 import kotlinx.coroutines.launch
@@ -52,6 +54,7 @@ import kotlinx.coroutines.launch
 fun PrintSettingsScreen(
     viewModel: SettingsViewModel,
     onBack: () -> Unit,
+    onHome: () -> Unit,
     onSaved: () -> Unit
 ) {
     val current by viewModel.settings.collectAsState()
@@ -84,10 +87,10 @@ fun PrintSettingsScreen(
             TopAppBar(
                 title = { Text("Print Settings") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = onHome) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            imageVector = Icons.Filled.Home,
+                            contentDescription = "Home"
                         )
                     }
                 }
@@ -95,14 +98,18 @@ fun PrintSettingsScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
             Text("Primary Printer", style = MaterialTheme.typography.titleMedium)
 
             SwitchRow(
@@ -254,6 +261,11 @@ fun PrintSettingsScreen(
             ) {
                 Text("Save")
             }
+            }
+            BottomLeftBackButton(
+                onBack = onBack,
+                modifier = Modifier.align(Alignment.BottomStart)
+            )
         }
     }
 

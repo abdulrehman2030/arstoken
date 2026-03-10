@@ -10,6 +10,8 @@ import android.graphics.pdf.PdfDocument
 import android.graphics.Typeface
 import androidx.core.content.FileProvider
 import com.ar.arstoken.data.db.ItemSalesRow
+import com.ar.arstoken.data.db.SaleEntity
+import com.ar.arstoken.data.db.SaleItemEntity
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -182,6 +184,265 @@ fun shareFile(
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
     context.startActivity(Intent.createChooser(intent, chooserTitle))
+}
+
+fun shareFileToWhatsApp(
+    context: Context,
+    file: File,
+    mimeType: String,
+    chooserTitle: String
+) {
+    val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = mimeType
+        putExtra(Intent.EXTRA_STREAM, uri)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        `package` = "com.whatsapp"
+    }
+    runCatching { context.startActivity(intent) }
+        .onFailure {
+            shareFile(context, file, mimeType, chooserTitle)
+        }
+}
+
+fun exportCustomerSalesPdf(
+    context: Context,
+    storeName: String?,
+    customerName: String,
+    fromDate: Long,
+    toDate: Long,
+    sales: List<SaleEntity>,
+    saleItemsBySaleId: Map<Int, List<SaleItemEntity>>
+): File {
+    val pageWidth = 842
+    val pageHeight = 1191
+    val margin = 32f
+    val lineHeight = 22f
+    val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.BLACK
+        textSize = 26f
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+    }
+    val appNamePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#1F4FBF")
+        textSize = 28f
+        textAlign = Paint.Align.CENTER
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+    }
+    val storeNamePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#111111")
+        textSize = 22f
+        textAlign = Paint.Align.CENTER
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+    }
+    val bodyPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#111111")
+        textSize = 15f
+    }
+    val headerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#1F4FBF")
+        textSize = 14f
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+    }
+    val billHeaderBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#EAF1FF")
+        style = Paint.Style.FILL
+    }
+    val tableHeaderBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#F3F6FC")
+        style = Paint.Style.FILL
+    }
+    val rowAltBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#FAFAFA")
+        style = Paint.Style.FILL
+    }
+    val dividerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#C7D3EB")
+        strokeWidth = 1.6f
+    }
+    val tableBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#B7C6E4")
+        strokeWidth = 1.4f
+    }
+    val netDuePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#0C2454")
+        textSize = 19f
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+    }
+
+    val df = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
+    val rowDate = SimpleDateFormat("dd MMM yy HH:mm", Locale.getDefault())
+    val ordered = sales.sortedBy { it.timestamp }
+
+    val pdf = PdfDocument()
+    var pageNo = 1
+    var page = pdf.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNo).create())
+    var canvas = page.canvas
+    var y = margin
+    val colItem = margin + 8f
+    val colQty = 470f
+    val colPrice = 560f
+    val colAmount = 660f
+    val tableLeft = margin
+    val tableRight = pageWidth - margin
+    val colQtyStart = 450f
+    val colPriceStart = 540f
+    val colAmountStart = 640f
+
+    fun drawHeader() {
+        y = margin
+        val centerX = pageWidth / 2f
+        canvas.drawText("ApexCounter", centerX, y, appNamePaint)
+        y += 30f
+        val storeTitle = storeName?.takeIf { it.isNotBlank() } ?: "-"
+        canvas.drawText(storeTitle, centerX, y, storeNamePaint)
+        y += 30f
+        canvas.drawText("Customer Ledger Report", margin, y, titlePaint)
+        y += 26f
+        canvas.drawText("Customer: $customerName", margin, y, bodyPaint)
+        y += 18f
+        canvas.drawText("From: ${df.format(Date(fromDate))}   To: ${df.format(Date(toDate))}", margin, y, bodyPaint)
+        y += 22f
+        canvas.drawLine(margin, y, pageWidth - margin, y, bodyPaint)
+        y += 16f
+    }
+
+    drawHeader()
+
+    fun nextPage() {
+        pdf.finishPage(page)
+        pageNo += 1
+        page = pdf.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNo).create())
+        canvas = page.canvas
+        drawHeader()
+    }
+
+    fun paymentLabel(sale: SaleEntity): String {
+        return when (sale.saleType.uppercase(Locale.getDefault())) {
+            "CASH" -> "Cash"
+            "CREDIT" -> "Credit"
+            "PARTIAL" -> "Partial"
+            else -> sale.saleType
+        }
+    }
+
+    if (ordered.isEmpty()) {
+        canvas.drawText("No records in the selected date range.", margin, y, bodyPaint)
+        y += lineHeight
+    }
+
+    fun drawBillTableHeader() {
+        val top = y - 14f
+        val bottom = y + 10f
+        canvas.drawRect(tableLeft, top, tableRight, bottom, tableHeaderBgPaint)
+        canvas.drawText("Item Name", colItem, y, headerPaint)
+        canvas.drawText("Qty", colQty, y, headerPaint)
+        canvas.drawText("Price", colPrice, y, headerPaint)
+        canvas.drawText("Amount", colAmount, y, headerPaint)
+        canvas.drawLine(tableLeft, top, tableRight, top, tableBorderPaint)
+        canvas.drawLine(tableLeft, bottom, tableRight, bottom, tableBorderPaint)
+        canvas.drawLine(tableLeft, top, tableLeft, bottom, tableBorderPaint)
+        canvas.drawLine(colQtyStart, top, colQtyStart, bottom, tableBorderPaint)
+        canvas.drawLine(colPriceStart, top, colPriceStart, bottom, tableBorderPaint)
+        canvas.drawLine(colAmountStart, top, colAmountStart, bottom, tableBorderPaint)
+        canvas.drawLine(tableRight, top, tableRight, bottom, tableBorderPaint)
+        y += 24f
+    }
+
+    ordered.forEach { sale ->
+        val items = saleItemsBySaleId[sale.id].orEmpty()
+        val isPaymentEntry = sale.saleType.equals("PAYMENT", ignoreCase = true) || items.isEmpty()
+
+        if (y > pageHeight - margin - 170f) {
+            nextPage()
+        }
+
+        if (isPaymentEntry) {
+            canvas.drawRect(margin, y - 14f, pageWidth - margin, y + 16f, billHeaderBgPaint)
+            canvas.drawText("Payment Received  |  ${rowDate.format(Date(sale.timestamp))}", margin, y, headerPaint)
+            y += 20f
+            canvas.drawText("Ref #${sale.id}  |  Amount: ${formatAmount(sale.paidAmount)}", margin, y, bodyPaint)
+            y += 18f
+            canvas.drawText("Updated Due: ${formatAmount(sale.dueAmount)}", margin, y, bodyPaint)
+            y += 20f
+        } else {
+            canvas.drawRect(margin, y - 14f, pageWidth - margin, y + 16f, billHeaderBgPaint)
+            canvas.drawText("Bill #${sale.id}  |  ${rowDate.format(Date(sale.timestamp))}", margin, y, headerPaint)
+            y += 18f
+
+            val payment = paymentLabel(sale)
+            val paymentLine = "Type: $payment  |  Paid: ${formatAmount(sale.paidAmount)}  |  Due: ${formatAmount(sale.dueAmount)}"
+            canvas.drawText(paymentLine, margin, y, bodyPaint)
+            y += 18f
+
+            canvas.drawText("Bill Total: ${formatAmount(sale.totalAmount)}", margin, y, bodyPaint)
+            y += 22f
+            drawBillTableHeader()
+
+            items.forEachIndexed { rowIndex, item ->
+                if (y > pageHeight - margin - 24f) {
+                    nextPage()
+                    canvas.drawRect(margin, y - 14f, pageWidth - margin, y + 16f, billHeaderBgPaint)
+                    canvas.drawText("Bill #${sale.id} (contd.)", margin, y, headerPaint)
+                    y += 22f
+                    drawBillTableHeader()
+                }
+                val rowTop = y - 14f
+                val rowBottom = y + 8f
+                if (rowIndex % 2 == 1) {
+                    canvas.drawRect(tableLeft, rowTop, tableRight, rowBottom, rowAltBgPaint)
+                }
+                canvas.drawText(item.itemName.take(44), colItem, y, bodyPaint)
+                canvas.drawText(formatQty(item.quantity), colQty, y, bodyPaint)
+                canvas.drawText(formatAmount(item.unitPrice.toDouble()), colPrice, y, bodyPaint)
+                canvas.drawText(formatAmount(item.totalPrice), colAmount, y, bodyPaint)
+                canvas.drawLine(tableLeft, rowBottom, tableRight, rowBottom, tableBorderPaint)
+                canvas.drawLine(tableLeft, rowTop, tableLeft, rowBottom, tableBorderPaint)
+                canvas.drawLine(colQtyStart, rowTop, colQtyStart, rowBottom, tableBorderPaint)
+                canvas.drawLine(colPriceStart, rowTop, colPriceStart, rowBottom, tableBorderPaint)
+                canvas.drawLine(colAmountStart, rowTop, colAmountStart, rowBottom, tableBorderPaint)
+                canvas.drawLine(tableRight, rowTop, tableRight, rowBottom, tableBorderPaint)
+                y += lineHeight
+            }
+            y += 16f
+        }
+    }
+
+    if (y > pageHeight - margin - 72f) {
+        nextPage()
+    }
+
+    val billEntries = ordered.filter { saleItemsBySaleId[it.id].orEmpty().isNotEmpty() }
+    val paymentEntries = ordered.filter { it.saleType.equals("PAYMENT", ignoreCase = true) || saleItemsBySaleId[it.id].orEmpty().isEmpty() }
+    val grandTotal = billEntries.sumOf { it.totalAmount }
+    val grandPaid = billEntries.sumOf { it.paidAmount }
+    val grandDue = ordered.sumOf { it.dueAmount }
+    val totalReceived = paymentEntries.sumOf { it.paidAmount }
+
+    canvas.drawLine(margin, y, pageWidth - margin, y, bodyPaint)
+    y += 20f
+    canvas.drawText("Records: ${ordered.size}  |  Bills: ${billEntries.size}  |  Payments: ${paymentEntries.size}", margin, y, headerPaint)
+    y += 18f
+    canvas.drawText("Grand Total: ${formatAmount(grandTotal)}", margin, y, bodyPaint)
+    y += 18f
+    canvas.drawText("Bill Paid: ${formatAmount(grandPaid)}", margin, y, bodyPaint)
+    y += 18f
+    canvas.drawText("Payments Received: ${formatAmount(totalReceived)}", margin, y, bodyPaint)
+    y += 22f
+    canvas.drawText("Net Due: ${formatAmount(grandDue)}", margin, y, netDuePaint)
+
+    if (y > pageHeight - margin - 24f) {
+        pdf.finishPage(page)
+    } else {
+        pdf.finishPage(page)
+    }
+
+    val timeTag = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+    val outDir = File(context.cacheDir, "shares").apply { mkdirs() }
+    val outFile = File(outDir, "customer_ledger_$timeTag.pdf")
+    FileOutputStream(outFile).use { pdf.writeTo(it) }
+    pdf.close()
+    return outFile
 }
 
 private fun csvEscape(value: String): String {

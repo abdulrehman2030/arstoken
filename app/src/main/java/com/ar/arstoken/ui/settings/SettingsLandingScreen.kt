@@ -2,12 +2,13 @@ package com.ar.arstoken.ui.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -28,11 +29,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ar.arstoken.data.db.StoreSettingsEntity
 import androidx.activity.compose.BackHandler
+import com.ar.arstoken.ui.components.BottomLeftBackButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsLandingScreen(
     onBack: () -> Unit,
+    onHome: () -> Unit,
     onOpenPrintSettings: () -> Unit,
     onOpenBusinessProfile: () -> Unit,
     onOpenBackupSettings: () -> Unit,
@@ -47,51 +50,60 @@ fun SettingsLandingScreen(
             TopAppBar(
                 title = { Text("Settings") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = onHome) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            imageVector = Icons.Filled.Home,
+                            contentDescription = "Home"
                         )
                     }
                 }
             )
         }
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            SettingsCard(
-                title = "Subscription",
-                subtitle = subscriptionLabel,
-                onClick = {}
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                SettingsCard(
+                    title = "Subscription",
+                    subtitle = subscriptionLabel,
+                    onClick = {}
+                )
 
-            SettingsCard(
-                title = "Business Profile",
-                subtitle = "Business name and phone",
-                onClick = onOpenBusinessProfile
-            )
+                SettingsCard(
+                    title = "Business Profile",
+                    subtitle = "Business name and phone",
+                    onClick = onOpenBusinessProfile
+                )
 
-            SettingsCard(
-                title = "Print Settings",
-                subtitle = "Receipt format and printer behavior",
-                onClick = onOpenPrintSettings
-            )
+                SettingsCard(
+                    title = "Print Settings",
+                    subtitle = "Receipt format and printer behavior",
+                    onClick = onOpenPrintSettings
+                )
 
-            SettingsCard(
-                title = "Backup Settings",
-                subtitle = "Manage auto backup schedule and sync now",
-                onClick = onOpenBackupSettings
-            )
+                SettingsCard(
+                    title = "Backup Settings",
+                    subtitle = "Manage auto backup schedule and sync now",
+                    onClick = onOpenBackupSettings
+                )
 
-            SettingsCard(
-                title = "Sign Out",
-                subtitle = "Log out of this device",
-                onClick = { showSignOutDialog = true }
+                SettingsCard(
+                    title = "Sign Out",
+                    subtitle = "Log out of this device",
+                    onClick = { showSignOutDialog = true }
+                )
+            }
+            BottomLeftBackButton(
+                onBack = onBack,
+                modifier = Modifier.align(androidx.compose.ui.Alignment.BottomStart)
             )
         }
     }
