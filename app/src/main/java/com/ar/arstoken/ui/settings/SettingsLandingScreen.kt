@@ -41,6 +41,7 @@ fun SettingsLandingScreen(
     onOpenBusinessProfile: () -> Unit,
     onSignOut: () -> Unit,
     settings: StoreSettingsEntity?,
+    subscriptionLabel: String,
     onSyncNow: () -> Unit,
     onSaveSyncTime: (hour: Int, minute: Int) -> Unit
 ) {
@@ -74,6 +75,12 @@ fun SettingsLandingScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            SettingsCard(
+                title = "Subscription",
+                subtitle = subscriptionLabel,
+                onClick = {}
+            )
+
             SettingsCard(
                 title = "Business Profile",
                 subtitle = "Business name and phone",
