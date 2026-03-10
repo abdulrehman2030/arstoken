@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
@@ -37,7 +38,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.ar.arstoken.util.formatAmount
-import com.ar.arstoken.ui.components.BottomLeftBackButton
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -107,6 +107,14 @@ fun CustomerLedgerScreen(
             TopAppBar(
                 title = { Text(customerName) },
                 navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                },
+                actions = {
                     IconButton(onClick = onHome) {
                         Icon(
                             imageVector = Icons.Filled.Home,
@@ -117,16 +125,12 @@ fun CustomerLedgerScreen(
             )
         }
     ) { padding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .padding(16.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp)
-            ) {
             val totalDue = ledgerRows.lastOrNull()?.second ?: 0.0
 
             Row(
@@ -253,11 +257,6 @@ fun CustomerLedgerScreen(
                     HorizontalDivider()
                 }
             }
-            }
-            BottomLeftBackButton(
-                onBack = onBack,
-                modifier = Modifier.align(Alignment.BottomStart)
-            )
         }
     }
     BackHandler { onBack() }

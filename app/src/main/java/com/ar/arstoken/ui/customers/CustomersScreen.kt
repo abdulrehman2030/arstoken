@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,7 +20,6 @@ import com.ar.arstoken.model.Customer
 import com.ar.arstoken.viewmodel.CustomerViewModel
 import androidx.activity.compose.BackHandler
 import com.ar.arstoken.util.formatAmount
-import com.ar.arstoken.ui.components.BottomLeftBackButton
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -42,6 +42,14 @@ fun CustomersScreen(
             TopAppBar(
                 title = { Text("Customers") },
                 navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                },
+                actions = {
                     IconButton(onClick = onHome) {
                         Icon(
                             imageVector = Icons.Filled.Home,
@@ -52,17 +60,13 @@ fun CustomersScreen(
             )
         }
     ) { padding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState())
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp)
-                    .verticalScroll(rememberScrollState())
-            ) {
             val fieldModifier = Modifier
                 .widthIn(max = 520.dp)
                 .heightIn(min = 48.dp)
@@ -141,11 +145,6 @@ fun CustomersScreen(
                     }
                 }
             }
-            }
-            BottomLeftBackButton(
-                onBack = onBack,
-                modifier = Modifier.align(Alignment.BottomStart)
-            )
         }
     }
     BackHandler { onBack() }

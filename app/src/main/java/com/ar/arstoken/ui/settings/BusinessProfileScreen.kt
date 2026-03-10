@@ -1,7 +1,6 @@
 package com.ar.arstoken.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,6 +8,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -29,10 +29,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.ar.arstoken.ui.components.BottomLeftBackButton
 import com.ar.arstoken.viewmodel.BusinessProfileViewModel
 import androidx.activity.compose.BackHandler
 import kotlinx.coroutines.delay
@@ -65,6 +63,14 @@ fun BusinessProfileScreen(
             TopAppBar(
                 title = { Text("Business Profile") },
                 navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                },
+                actions = {
                     IconButton(onClick = onHome) {
                         Icon(
                             imageVector = Icons.Filled.Home,
@@ -76,18 +82,14 @@ fun BusinessProfileScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                val fieldModifier = Modifier.widthIn(min = 280.dp, max = 520.dp)
+            val fieldModifier = Modifier.widthIn(min = 280.dp, max = 520.dp)
 
                 OutlinedTextField(
                     value = businessName,
@@ -133,17 +135,12 @@ fun BusinessProfileScreen(
                     Text("Save")
                 }
 
-                if (!errorMessage.isNullOrBlank()) {
-                    Text(
-                        text = errorMessage.orEmpty(),
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
+            if (!errorMessage.isNullOrBlank()) {
+                Text(
+                    text = errorMessage.orEmpty(),
+                    color = MaterialTheme.colorScheme.error
+                )
             }
-            BottomLeftBackButton(
-                onBack = onBack,
-                modifier = Modifier.align(Alignment.BottomStart)
-            )
         }
     }
 
